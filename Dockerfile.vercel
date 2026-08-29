@@ -20,4 +20,4 @@ ENV PORT=80
 
 EXPOSE 80
 
-CMD ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
+CMD ["/opt/java/openjdk/bin/java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
