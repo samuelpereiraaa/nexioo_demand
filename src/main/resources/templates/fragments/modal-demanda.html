@@ -67,8 +67,8 @@
                                 th:field="*{coluna}"
                                 class="campo-select"
                                 required>
-                            <option th:each="c : ${T(br.com.nexioo.demand.model.Coluna).values()}"
-                                    th:value="${c}"
+                            <option th:each="c : ${colunas}"
+                                    th:value="${c.id}"
                                     th:text="${c.descricao}">
                             </option>
                         </select>

@@ -2,13 +2,11 @@ package br.com.nexioo.demand.model;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entidade central do sistema.
- * <p>
- * Na Fase 1, é um POJO puro mantido em memória.
- * Na Fase 2, basta adicionar as anotações JPA ({@code @Entity}, {@code @Id}, etc.)
- * sem alterar nenhuma outra camada.
  */
 public class Demanda {
 
@@ -22,21 +20,55 @@ public class Demanda {
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
 
+    private List<Etiqueta> etiquetas = new ArrayList<>();
+    private List<Checklist> checklists = new ArrayList<>();
+    private List<String> membros = new ArrayList<>();
+    private boolean acompanhando = false;
+
+    private List<ItemAtividade> atividades = new ArrayList<>();
+
     public Demanda() {
     }
 
-    /**
-     * Retorna {@code true} se o prazo já passou em relação à data atual.
-     * Útil para destacar visualmente demandas atrasadas nos templates.
-     */
+    public static class ItemAtividade {
+        private String autor;
+        private String texto;
+        private LocalDateTime dataHora;
+        private boolean comentario;
+
+        public ItemAtividade() {}
+
+        public ItemAtividade(String autor, String texto, LocalDateTime dataHora, boolean comentario) {
+            this.autor = autor;
+            this.texto = texto;
+            this.dataHora = dataHora;
+            this.comentario = comentario;
+        }
+
+        public String getAutor() { return autor; }
+        public void setAutor(String autor) { this.autor = autor; }
+
+        public String getTexto() { return texto; }
+        public void setTexto(String texto) { this.texto = texto; }
+
+        public LocalDateTime getDataHora() { return dataHora; }
+        public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
+
+        public boolean isComentario() { return comentario; }
+        public void setComentario(boolean comentario) { this.comentario = comentario; }
+
+        public String getIniciaisAutor() {
+            if (autor == null || autor.isBlank()) return "ND";
+            String[] partes = autor.trim().split("\\s+");
+            if (partes.length == 1) return partes[0].substring(0, Math.min(2, partes[0].length())).toUpperCase();
+            return ("" + partes[0].charAt(0) + partes[partes.length - 1].charAt(0)).toUpperCase();
+        }
+    }
+
     public boolean isPrazoVencido() {
         return prazo != null && prazo.isBefore(LocalDate.now());
     }
 
-    /**
-     * Retorna as iniciais do responsável (até 2 caracteres) para exibição
-     * no avatar circular do cartão.
-     */
     public String getIniciaisResponsavel() {
         if (responsavel == null || responsavel.isBlank()) {
             return "ND";
@@ -48,15 +80,57 @@ public class Demanda {
         return ("" + partes[0].charAt(0) + partes[partes.length - 1].charAt(0)).toUpperCase();
     }
 
-    /**
-     * Retorna um índice numérico estável baseado no nome do responsável
-     * para alternar as cores dos avatares circular de forma harmoniosa.
-     */
     public int getAvatarCorIndex() {
         if (responsavel == null || responsavel.isBlank()) {
             return 0;
         }
         return Math.abs(responsavel.hashCode() % 5);
+    }
+
+    public void registrarAtividade(String autor, String texto) {
+        registrarAtividade(autor, texto, false);
+    }
+
+    public void registrarComentario(String autor, String texto) {
+        registrarAtividade(autor, texto, true);
+    }
+
+    private void registrarAtividade(String autor, String texto, boolean isComentario) {
+        if (this.atividades == null) {
+            this.atividades = new ArrayList<>();
+        }
+        this.atividades.add(0, new ItemAtividade(
+                (autor != null && !autor.isBlank()) ? autor : "Samuel Oliveira",
+                texto,
+                LocalDateTime.now(),
+                isComentario
+        ));
+    }
+
+    public boolean hasChecklist() {
+        return checklists != null && !checklists.isEmpty();
+    }
+
+    public int getTotalChecklistItens() {
+        if (checklists == null) return 0;
+        int total = 0;
+        for (Checklist c : checklists) {
+            total += c.getTotalItens();
+        }
+        return total;
+    }
+
+    public int getConcluidosChecklistItens() {
+        if (checklists == null) return 0;
+        int count = 0;
+        for (Checklist c : checklists) {
+            count += c.getItensConcluidos();
+        }
+        return count;
+    }
+
+    public String getChecklistProgressoTexto() {
+        return getConcluidosChecklistItens() + "/" + getTotalChecklistItens();
     }
 
     // ── Getters e Setters ────────────────────────────────────────────────────
@@ -131,5 +205,45 @@ public class Demanda {
 
     public void setAtualizadoEm(LocalDateTime atualizadoEm) {
         this.atualizadoEm = atualizadoEm;
+    }
+
+    public List<Etiqueta> getEtiquetas() {
+        return etiquetas;
+    }
+
+    public void setEtiquetas(List<Etiqueta> etiquetas) {
+        this.etiquetas = etiquetas;
+    }
+
+    public List<Checklist> getChecklists() {
+        return checklists;
+    }
+
+    public void setChecklists(List<Checklist> checklists) {
+        this.checklists = checklists;
+    }
+
+    public List<String> getMembros() {
+        return membros;
+    }
+
+    public void setMembros(List<String> membros) {
+        this.membros = membros;
+    }
+
+    public boolean isAcompanhando() {
+        return acompanhando;
+    }
+
+    public void setAcompanhando(boolean acompanhando) {
+        this.acompanhando = acompanhando;
+    }
+
+    public List<ItemAtividade> getAtividades() {
+        return atividades;
+    }
+
+    public void setAtividades(List<ItemAtividade> atividades) {
+        this.atividades = atividades;
     }
 }

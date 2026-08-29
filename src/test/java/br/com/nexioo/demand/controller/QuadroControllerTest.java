@@ -3,6 +3,7 @@ package br.com.nexioo.demand.controller;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
 import br.com.nexioo.demand.model.Prioridade;
+import br.com.nexioo.demand.service.ColunaService;
 import br.com.nexioo.demand.service.DemandaService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,17 @@ class QuadroControllerTest {
     @MockBean
     private DemandaService demandaService;
 
+    @MockBean
+    private ColunaService colunaService;
+
     @Test
     @DisplayName("GET / deve renderizar o quadro Kanban com status 200 e todas as colunas")
     void deveRenderizarQuadroComSucesso() throws Exception {
         Map<Coluna, List<Demanda>> mapaDemandas = criarMapaDemandas();
+        List<Coluna> listaColunas = List.of(Coluna.BACKLOG, Coluna.A_FAZER, Coluna.EM_ANDAMENTO, Coluna.CONCLUIDO);
         when(demandaService.listarPorColuna()).thenReturn(mapaDemandas);
+        when(colunaService.listarTodas()).thenReturn(listaColunas);
+        when(colunaService.buscarPadrao()).thenReturn(Coluna.BACKLOG);
 
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
@@ -40,14 +47,18 @@ class QuadroControllerTest {
                 .andExpect(model().attributeExists("demandas"))
                 .andExpect(model().attributeExists("colunas"))
                 .andExpect(model().attributeExists("prioridades"))
-                .andExpect(model().attributeExists("demandaForm"));
+                .andExpect(model().attributeExists("demandaForm"))
+                .andExpect(model().attributeExists("colunaForm"));
     }
 
     @Test
     @DisplayName("GET /quadro deve renderizar a mesma tela do quadro Kanban com status 200")
     void deveRenderizarRotaQuadroComSucesso() throws Exception {
         Map<Coluna, List<Demanda>> mapaDemandas = criarMapaDemandas();
+        List<Coluna> listaColunas = List.of(Coluna.BACKLOG, Coluna.A_FAZER, Coluna.EM_ANDAMENTO, Coluna.CONCLUIDO);
         when(demandaService.listarPorColuna()).thenReturn(mapaDemandas);
+        when(colunaService.listarTodas()).thenReturn(listaColunas);
+        when(colunaService.buscarPadrao()).thenReturn(Coluna.BACKLOG);
 
         mockMvc.perform(get("/quadro"))
                 .andExpect(status().isOk())
@@ -57,7 +68,7 @@ class QuadroControllerTest {
 
     private Map<Coluna, List<Demanda>> criarMapaDemandas() {
         Map<Coluna, List<Demanda>> mapaDemandas = new LinkedHashMap<>();
-        for (Coluna coluna : Coluna.values()) {
+        for (Coluna coluna : List.of(Coluna.BACKLOG, Coluna.A_FAZER, Coluna.EM_ANDAMENTO, Coluna.CONCLUIDO)) {
             mapaDemandas.put(coluna, new ArrayList<>());
         }
 

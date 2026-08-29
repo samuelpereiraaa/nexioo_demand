@@ -4,7 +4,10 @@ import br.com.nexioo.demand.dto.DemandaForm;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
 import br.com.nexioo.demand.model.Prioridade;
+import br.com.nexioo.demand.service.ColunaService;
 import br.com.nexioo.demand.service.DemandaService;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -12,20 +15,27 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * Gerencia o ciclo de vida das demandas: criação, visualização, edição,
- * alteração de status e exclusão.
- * Sem lógica de negócio — toda regra está em {@link DemandaService}.
+ * Gerencia o ciclo de vida e interações detalhadas das demandas.
  */
 @Controller
 @RequestMapping("/demandas")
 public class DemandaController {
 
     private final DemandaService demandaService;
+    private final ColunaService colunaService;
 
-    public DemandaController(DemandaService demandaService) {
+    private static final List<String> MEMBROS_SUGERIDOS = Arrays.asList(
+            "Samuel Oliveira", "Ana Silva", "Carlos Oliveira", "Mariana Costa", "Pedro Santos"
+    );
+
+    public DemandaController(DemandaService demandaService, ColunaService colunaService) {
         this.demandaService = demandaService;
+        this.colunaService = colunaService;
     }
 
     // ── Criar ────────────────────────────────────────────────────────────────
@@ -33,10 +43,10 @@ public class DemandaController {
     @GetMapping("/nova")
     public String novaForm(Model model) {
         DemandaForm form = new DemandaForm();
-        form.setColuna(Coluna.BACKLOG);
+        form.setColuna(colunaService.buscarPadrao());
         form.setPrioridade(Prioridade.MEDIA);
         model.addAttribute("demandaForm", form);
-        model.addAttribute("colunas", Coluna.values());
+        model.addAttribute("colunas", colunaService.listarTodas());
         model.addAttribute("prioridades", Prioridade.values());
         model.addAttribute("paginaTitulo", "Nova Demanda");
         model.addAttribute("formAction", "/demandas");
@@ -51,7 +61,7 @@ public class DemandaController {
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("colunas", Coluna.values());
+            model.addAttribute("colunas", colunaService.listarTodas());
             model.addAttribute("prioridades", Prioridade.values());
             model.addAttribute("paginaTitulo", "Nova Demanda");
             model.addAttribute("formAction", "/demandas");
@@ -64,23 +74,30 @@ public class DemandaController {
         return "redirect:/";
     }
 
-    // ── Visualizar ───────────────────────────────────────────────────────────
+    // ── Visualizar Fragmento de Modal (AJAX) ──────────────────────────────────
+
+    @GetMapping("/{id}/modal")
+    public String detalheModal(@PathVariable Long id, Model model) {
+        Demanda demanda = demandaService.buscarPorId(id);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
 
     @GetMapping("/{id}")
     public String detalhe(@PathVariable Long id, Model model) {
         model.addAttribute("demanda", demandaService.buscarPorId(id));
-        model.addAttribute("colunas", Coluna.values());
+        model.addAttribute("colunas", colunaService.listarTodas());
         return "demanda/detalhe";
     }
 
-    // ── Editar ───────────────────────────────────────────────────────────────
+    // ── Editar Formulário Tradicional ────────────────────────────────────────
 
     @GetMapping("/{id}/editar")
     public String editarForm(@PathVariable Long id, Model model) {
         Demanda demanda = demandaService.buscarPorId(id);
         model.addAttribute("demandaForm", demandaParaForm(demanda));
         model.addAttribute("demanda", demanda);
-        model.addAttribute("colunas", Coluna.values());
+        model.addAttribute("colunas", colunaService.listarTodas());
         model.addAttribute("prioridades", Prioridade.values());
         model.addAttribute("paginaTitulo", "Editar Demanda");
         model.addAttribute("formAction", "/demandas/" + id + "/editar");
@@ -97,7 +114,7 @@ public class DemandaController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("demanda", demandaService.buscarPorId(id));
-            model.addAttribute("colunas", Coluna.values());
+            model.addAttribute("colunas", colunaService.listarTodas());
             model.addAttribute("prioridades", Prioridade.values());
             model.addAttribute("paginaTitulo", "Editar Demanda");
             model.addAttribute("formAction", "/demandas/" + id + "/editar");
@@ -109,31 +126,167 @@ public class DemandaController {
         return "redirect:/demandas/" + id;
     }
 
-    // ── Alterar status ───────────────────────────────────────────────────────
+    // ── Atualizações Específicas do Modal (AJAX) ─────────────────────────────
+
+    @PostMapping("/{id}/titulo")
+    public String atualizarTitulo(@PathVariable Long id, @RequestParam String titulo, Model model) {
+        Demanda demanda = demandaService.atualizarTitulo(id, titulo);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/descricao")
+    public String atualizarDescricao(@PathVariable Long id, @RequestParam(required = false) String descricao, Model model) {
+        Demanda demanda = demandaService.atualizarDescricao(id, descricao);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/modal-update")
+    public String modalUpdate(
+            @PathVariable Long id,
+            @RequestParam(required = false) String titulo,
+            @RequestParam(required = false) String descricao,
+            @RequestParam(required = false) Coluna coluna,
+            @RequestParam(required = false) Prioridade prioridade,
+            @RequestParam(required = false) String responsavel,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate prazo,
+            Model model) {
+
+        Demanda demanda = demandaService.buscarPorId(id);
+        DemandaForm form = demandaParaForm(demanda);
+
+        if (titulo != null && !titulo.isBlank()) form.setTitulo(titulo);
+        if (descricao != null) form.setDescricao(descricao);
+        if (coluna != null) form.setColuna(coluna);
+        if (prioridade != null) form.setPrioridade(prioridade);
+        if (responsavel != null) form.setResponsavel(responsavel);
+        form.setPrazo(prazo);
+
+        demanda = demandaService.editar(id, form);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Etiquetas (AJAX) ─────────────────────────────────────────────────────
+
+    @PostMapping("/{id}/etiquetas/adicionar")
+    public String adicionarEtiqueta(@PathVariable Long id, @RequestParam String nome, @RequestParam(required = false) String corHex, Model model) {
+        Demanda demanda = demandaService.adicionarEtiqueta(id, nome, corHex);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/etiquetas/remover")
+    public String removerEtiqueta(@PathVariable Long id, @RequestParam String etiquetaId, Model model) {
+        Demanda demanda = demandaService.removerEtiqueta(id, etiquetaId);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Datas (AJAX) ─────────────────────────────────────────────────────────
+
+    @PostMapping("/{id}/prazo")
+    public String definirPrazo(@PathVariable Long id, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate prazo, Model model) {
+        Demanda demanda = demandaService.definirPrazo(id, prazo);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Checklists (AJAX) ────────────────────────────────────────────────────
+
+    @PostMapping("/{id}/checklists/adicionar")
+    public String adicionarChecklist(@PathVariable Long id, @RequestParam(required = false) String titulo, Model model) {
+        Demanda demanda = demandaService.adicionarChecklist(id, titulo);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/checklists/remover")
+    public String removerChecklist(@PathVariable Long id, @RequestParam Long checklistId, Model model) {
+        Demanda demanda = demandaService.removerChecklist(id, checklistId);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/checklists/itens/adicionar")
+    public String adicionarItemChecklist(@PathVariable Long id, @RequestParam Long checklistId, @RequestParam String texto, Model model) {
+        Demanda demanda = demandaService.adicionarItemChecklist(id, checklistId, texto);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/checklists/itens/toggle")
+    public String toggleItemChecklist(@PathVariable Long id, @RequestParam Long checklistId, @RequestParam Long itemId, Model model) {
+        Demanda demanda = demandaService.toggleItemChecklist(id, checklistId, itemId);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/checklists/itens/remover")
+    public String removerItemChecklist(@PathVariable Long id, @RequestParam Long checklistId, @RequestParam Long itemId, Model model) {
+        Demanda demanda = demandaService.removerItemChecklist(id, checklistId, itemId);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Membros (AJAX) ───────────────────────────────────────────────────────
+
+    @PostMapping("/{id}/membros/adicionar")
+    public String adicionarMembro(@PathVariable Long id, @RequestParam String membro, Model model) {
+        Demanda demanda = demandaService.adicionarMembro(id, membro);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/membros/remover")
+    public String removerMembro(@PathVariable Long id, @RequestParam String membro, Model model) {
+        Demanda demanda = demandaService.removerMembro(id, membro);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Acompanhar Demanda (AJAX) ────────────────────────────────────────────
+
+    @PostMapping("/{id}/acompanhar")
+    public String toggleAcompanhar(@PathVariable Long id, Model model) {
+        Demanda demanda = demandaService.toggleAcompanhar(id);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Comentários (AJAX) ───────────────────────────────────────────────────
+
+    @PostMapping("/{id}/comentar")
+    public String adicionarComentario(@PathVariable Long id, @RequestParam String texto, Model model) {
+        Demanda demanda = demandaService.adicionarComentario(id, texto, "Samuel Oliveira");
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Alterar status / Conclusão ───────────────────────────────────────────
 
     @PostMapping("/{id}/status")
-    public String alterarStatus(
-            @PathVariable Long id,
-            @RequestParam Coluna coluna,
-            RedirectAttributes redirectAttributes) {
+    public String alterarStatus(@PathVariable Long id, @RequestParam Coluna coluna, RedirectAttributes redirectAttributes) {
         demandaService.alterarColuna(id, coluna);
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Status atualizado com sucesso.");
         return "redirect:/";
     }
 
-    // ── Alternar Concluído / Reabrir ─────────────────────────────────────────
-
     @PostMapping("/{id}/toggle-concluido")
-    public String toggleConcluido(
-            @PathVariable Long id,
-            RedirectAttributes redirectAttributes) {
+    public String toggleConcluido(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         Demanda demanda = demandaService.buscarPorId(id);
-        if (demanda.getColuna() == Coluna.CONCLUIDO) {
-            demandaService.alterarColuna(id, Coluna.A_FAZER);
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda \"" + demanda.getTitulo() + "\" reaberta em A Fazer.");
+        boolean isConcluido = demanda.getColuna() != null
+                && "CONCLUIDO".equalsIgnoreCase(demanda.getColuna().getId());
+
+        if (isConcluido) {
+            Coluna colunaAFazer = colunaService.buscarPorId("A_FAZER");
+            demandaService.alterarColuna(id, colunaAFazer);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda reaberta.");
         } else {
-            demandaService.alterarColuna(id, Coluna.CONCLUIDO);
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda \"" + demanda.getTitulo() + "\" marcada como concluída!");
+            Coluna colunaConcluido = colunaService.buscarPorId("CONCLUIDO");
+            demandaService.alterarColuna(id, colunaConcluido);
+            redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda concluída!");
         }
         return "redirect:/";
     }
@@ -150,12 +303,25 @@ public class DemandaController {
     public String excluir(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         String titulo = demandaService.buscarPorId(id).getTitulo();
         demandaService.excluir(id);
-        redirectAttributes.addFlashAttribute("mensagemSucesso",
-                "Demanda \"" + titulo + "\" excluída com sucesso.");
+        redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda \"" + titulo + "\" excluída.");
         return "redirect:/";
     }
 
-    // ── Auxiliar ─────────────────────────────────────────────────────────────
+    @DeleteMapping("/{id}/api")
+    @ResponseBody
+    public ResponseEntity<Void> excluirApi(@PathVariable Long id) {
+        demandaService.excluir(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // ── Auxiliares Privados ──────────────────────────────────────────────────
+
+    private void preencherModelModal(Model model, Demanda demanda) {
+        model.addAttribute("demanda", demanda);
+        model.addAttribute("colunas", colunaService.listarTodas());
+        model.addAttribute("prioridades", Prioridade.values());
+        model.addAttribute("membrosSugeridos", MEMBROS_SUGERIDOS);
+    }
 
     private DemandaForm demandaParaForm(Demanda demanda) {
         DemandaForm form = new DemandaForm();

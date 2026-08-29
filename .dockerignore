@@ -1,0 +1,9 @@
+target
+.git
+.idea
+.settings
+.vscode
+.DS_Store
+*.mov
+*.mp4
+*.log

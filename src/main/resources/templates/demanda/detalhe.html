@@ -34,7 +34,7 @@
                     <div class="detail-badges">
                         <span th:class="'priority-tag tag--' + ${demanda.prioridade.name().toLowerCase()}"
                               th:text="${demanda.prioridade.descricao}">Prioridade</span>
-                        <span class="column-badge" th:text="${demanda.coluna.descricao}">Coluna</span>
+                        <span class="column-badge" th:text="${demanda.coluna != null ? demanda.coluna.descricao : '—'}">Coluna</span>
                         <span th:if="${demanda.prazoVencido}" class="expired-badge">Prazo vencido</span>
                     </div>
 
@@ -87,7 +87,7 @@
 
                     <div class="meta-box">
                         <span class="meta-box-label">Coluna Atual</span>
-                        <span class="meta-box-value" th:text="${demanda.coluna.descricao}">—</span>
+                        <span class="meta-box-value" th:text="${demanda.coluna != null ? demanda.coluna.descricao : '—'}">—</span>
                     </div>
 
                     <div class="meta-box">
@@ -116,9 +116,9 @@
                           class="status-change-form">
                         <select name="coluna" class="campo-select select-inline" aria-label="Selecione a nova coluna">
                             <option th:each="c : ${colunas}"
-                                    th:value="${c}"
+                                    th:value="${c.id}"
                                     th:text="${c.descricao}"
-                                    th:selected="${c == demanda.coluna}">
+                                    th:selected="${demanda.coluna != null and c.id == demanda.coluna.id}">
                             </option>
                         </select>
                         <button type="submit" class="btn btn-primario-destaque">Mover demanda</button>

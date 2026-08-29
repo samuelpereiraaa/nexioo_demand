@@ -1,14 +1,18 @@
 package br.com.nexioo.demand.controller;
 
+import br.com.nexioo.demand.config.StringToColunaConverter;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
 import br.com.nexioo.demand.model.Prioridade;
+import br.com.nexioo.demand.service.ColunaService;
 import br.com.nexioo.demand.service.DemandaService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -20,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(DemandaController.class)
+@Import(StringToColunaConverter.class)
 @DisplayName("DemandaController — camada web")
 class DemandaControllerTest {
 
@@ -28,6 +33,18 @@ class DemandaControllerTest {
 
     @MockBean
     private DemandaService demandaService;
+
+    @MockBean
+    private ColunaService colunaService;
+
+    @BeforeEach
+    void setUp() {
+        when(colunaService.buscarPorId("BACKLOG")).thenReturn(Coluna.BACKLOG);
+        when(colunaService.buscarPorId("A_FAZER")).thenReturn(Coluna.A_FAZER);
+        when(colunaService.buscarPorId("EM_ANDAMENTO")).thenReturn(Coluna.EM_ANDAMENTO);
+        when(colunaService.buscarPorId("CONCLUIDO")).thenReturn(Coluna.CONCLUIDO);
+        when(colunaService.buscarPadrao()).thenReturn(Coluna.BACKLOG);
+    }
 
     @Test
     @DisplayName("GET /demandas/nova deve retornar o formulário de criação com status 200")

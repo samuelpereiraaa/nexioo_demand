@@ -32,6 +32,9 @@ class DemandaServiceTest {
     @Mock
     private DemandaRepository demandaRepository;
 
+    @Mock
+    private ColunaService colunaService;
+
     @InjectMocks
     private DemandaServiceImpl demandaService;
 
@@ -75,6 +78,7 @@ class DemandaServiceTest {
     @Test
     @DisplayName("deve retornar mapa com todas as colunas, incluindo as sem demandas")
     void deveListarPorColunaComTodasAsColunas() {
+        when(colunaService.listarTodas()).thenReturn(List.of(Coluna.BACKLOG, Coluna.A_FAZER, Coluna.EM_ANDAMENTO, Coluna.CONCLUIDO));
         Demanda d1 = demandaComColuna(Coluna.BACKLOG);
         Demanda d2 = demandaComColuna(Coluna.A_FAZER);
         when(demandaRepository.listarTodas()).thenReturn(Arrays.asList(d1, d2));
@@ -90,6 +94,7 @@ class DemandaServiceTest {
     @Test
     @DisplayName("deve filtrar demandas pelo termo presente no título")
     void deveFiltrarPeloTitulo() {
+        when(colunaService.listarTodas()).thenReturn(List.of(Coluna.BACKLOG, Coluna.A_FAZER, Coluna.EM_ANDAMENTO, Coluna.CONCLUIDO));
         Demanda d1 = demandaComTitulo("Implementar login", Coluna.BACKLOG);
         Demanda d2 = demandaComTitulo("Criar relatório", Coluna.A_FAZER);
         when(demandaRepository.listarTodas()).thenReturn(Arrays.asList(d1, d2));
@@ -103,6 +108,7 @@ class DemandaServiceTest {
     @Test
     @DisplayName("deve filtrar demandas pela prioridade")
     void deveFiltrarPelaPrioridade() {
+        when(colunaService.listarTodas()).thenReturn(List.of(Coluna.BACKLOG, Coluna.A_FAZER, Coluna.EM_ANDAMENTO, Coluna.CONCLUIDO));
         Demanda d1 = demandaComColuna(Coluna.BACKLOG);
         d1.setPrioridade(Prioridade.ALTA);
         Demanda d2 = demandaComColuna(Coluna.A_FAZER);

@@ -76,7 +76,7 @@
                                 required>
                             <option value="">Selecione uma coluna</option>
                             <option th:each="c : ${colunas}"
-                                    th:value="${c}"
+                                    th:value="${c.id}"
                                     th:text="${c.descricao}">
                             </option>
                         </select>

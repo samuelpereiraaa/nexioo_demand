@@ -1,0 +1,23 @@
+FROM maven:3.9.16-eclipse-temurin-11 AS build
+
+WORKDIR /app
+
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
+
+COPY src ./src
+RUN mvn -B clean package
+
+FROM eclipse-temurin:11-jre-noble
+
+WORKDIR /app
+
+COPY --from=build \
+    /app/target/nexioo-demand-0.0.1-SNAPSHOT.jar \
+    /app/app.jar
+
+ENV PORT=80
+
+EXPOSE 80
+
+CMD ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

@@ -5,8 +5,8 @@
 <!-- Fragmento da Coluna Kanban (Dark Premium) com Ações e Contadores Atualizados -->
 <section th:fragment="coluna(coluna, listaDemandas)"
          class="kanban-column"
-         th:id="'coluna-' + ${coluna.name().toLowerCase()}"
-         th:attr="data-coluna-id=${coluna.name()}, aria-label='Coluna ' + ${coluna.descricao}">
+         th:id="'coluna-' + ${coluna.id.toLowerCase()}"
+         th:attr="data-coluna-id=${coluna.id}, aria-label='Coluna ' + ${coluna.descricao}">
 
     <!-- Cabeçalho da Coluna -->
     <header class="column-header">
@@ -78,23 +78,9 @@
 
     </div>
 
-    <!-- Rodapé da Coluna: Ação de Adicionar Demanda -->
-    <footer class="column-footer">
-        <button type="button"
-                class="btn-add-card"
-                data-modal-target="modal-nova-demanda"
-                th:attr="data-coluna-default=${coluna.name()}, aria-label='Adicionar demanda na coluna ' + ${coluna.descricao}">
-            <span class="btn-add-icon" aria-hidden="true">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-            </span>
-            <span>+ Adicionar demanda</span>
-        </button>
-    </footer>
 
 </section>
 
 </body>
 </html>
+

@@ -1,9 +1,11 @@
 package br.com.nexioo.demand.controller;
 
+import br.com.nexioo.demand.dto.ColunaForm;
 import br.com.nexioo.demand.dto.DemandaForm;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
 import br.com.nexioo.demand.model.Prioridade;
+import br.com.nexioo.demand.service.ColunaService;
 import br.com.nexioo.demand.service.DemandaService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,15 +18,17 @@ import java.util.Map;
 /**
  * Responsável pela tela principal: o quadro Kanban.
  * Mapeia as rotas "/" e "/quadro".
- * Delega toda lógica ao {@link DemandaService}.
+ * Delega a lógica aos serviços {@link DemandaService} e {@link ColunaService}.
  */
 @Controller
 public class QuadroController {
 
     private final DemandaService demandaService;
+    private final ColunaService colunaService;
 
-    public QuadroController(DemandaService demandaService) {
+    public QuadroController(DemandaService demandaService, ColunaService colunaService) {
         this.demandaService = demandaService;
+        this.colunaService = colunaService;
     }
 
     @GetMapping({"/", "/quadro"})
@@ -39,15 +43,18 @@ public class QuadroController {
                 ? demandaService.filtrar(termo, prioridade, responsavel)
                 : demandaService.listarPorColuna();
 
-        // Formulário padrão para criação rápida via modal / inline
+        List<Coluna> colunas = colunaService.listarTodas();
+
+        // Formulário padrão para criação rápida de demandas
         DemandaForm novoForm = new DemandaForm();
-        novoForm.setColuna(Coluna.BACKLOG);
+        novoForm.setColuna(colunaService.buscarPadrao());
         novoForm.setPrioridade(Prioridade.MEDIA);
 
         model.addAttribute("demandas", demandas);
-        model.addAttribute("colunas", Coluna.values());
+        model.addAttribute("colunas", colunas);
         model.addAttribute("prioridades", Prioridade.values());
         model.addAttribute("demandaForm", novoForm);
+        model.addAttribute("colunaForm", new ColunaForm());
         model.addAttribute("filtroTermo", termo);
         model.addAttribute("filtroPrioridade", prioridade);
         model.addAttribute("filtroResponsavel", responsavel);
