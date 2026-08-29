@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${paginaTitulo})}"></head>
+<body class="body-subpage-view">
+
+<a class="skip-to-content" href="#conteudo-formulario">Pular para o formulário</a>
+
+<div th:replace="~{fragments/header :: topbar}"></div>
+
+<main id="conteudo-formulario" class="subpage-canvas" role="main">
+    <div class="subpage-container">
+
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+        <div class="subpage-header">
+            <a th:href="@{/}" class="link-back" aria-label="Voltar para o quadro">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Voltar ao quadro</span>
+            </a>
+            <h1 class="subpage-title" th:text="${paginaTitulo}">Nova Demanda</h1>
+        </div>
+
+        <div class="glass-form-card">
+            <form th:action="${formAction}"
+                  th:object="${demandaForm}"
+                  method="post"
+                  class="demanda-form"
+                  novalidate>
+
+                <!-- Título -->
+                <div class="campo-grupo" th:classappend="${#fields.hasErrors('titulo')} ? ' campo-grupo--erro'">
+                    <label for="titulo" class="campo-label campo-obrigatorio">Título da demanda</label>
+                    <input type="text"
+                           id="titulo"
+                           th:field="*{titulo}"
+                           class="campo-input"
+                           th:classappend="${#fields.hasErrors('titulo')} ? ' campo-input--erro'"
+                           placeholder="Descreva a demanda de forma clara e objetiva"
+                           maxlength="120"
+                           required
+                           autocomplete="off">
+                    <span class="campo-erro"
+                          th:if="${#fields.hasErrors('titulo')}"
+                          th:errors="*{titulo}"
+                          role="alert">
+                    </span>
+                </div>
+
+                <!-- Descrição -->
+                <div class="campo-grupo" th:classappend="${#fields.hasErrors('descricao')} ? ' campo-grupo--erro'">
+                    <label for="descricao" class="campo-label">Descrição detalhada</label>
+                    <textarea id="descricao"
+                              th:field="*{descricao}"
+                              class="campo-textarea"
+                              th:classappend="${#fields.hasErrors('descricao')} ? ' campo-input--erro'"
+                              placeholder="Contexto, critérios de aceite e detalhes importantes..."
+                              rows="5"
+                              maxlength="2000"></textarea>
+                    <span class="campo-erro"
+                          th:if="${#fields.hasErrors('descricao')}"
+                          th:errors="*{descricao}"
+                          role="alert">
+                    </span>
+                </div>
+
+                <!-- Coluna e Prioridade -->
+                <div class="form-linha">
+                    <div class="campo-grupo" th:classappend="${#fields.hasErrors('coluna')} ? ' campo-grupo--erro'">
+                        <label for="coluna" class="campo-label campo-obrigatorio">Coluna</label>
+                        <select id="coluna"
+                                th:field="*{coluna}"
+                                class="campo-select"
+                                required>
+                            <option value="">Selecione uma coluna</option>
+                            <option th:each="c : ${colunas}"
+                                    th:value="${c}"
+                                    th:text="${c.descricao}">
+                            </option>
+                        </select>
+                        <span class="campo-erro"
+                              th:if="${#fields.hasErrors('coluna')}"
+                              th:errors="*{coluna}"
+                              role="alert">
+                        </span>
+                    </div>
+
+                    <div class="campo-grupo" th:classappend="${#fields.hasErrors('prioridade')} ? ' campo-grupo--erro'">
+                        <label for="prioridade" class="campo-label campo-obrigatorio">Prioridade</label>
+                        <select id="prioridade"
+                                th:field="*{prioridade}"
+                                class="campo-select"
+                                required>
+                            <option value="">Selecione a prioridade</option>
+                            <option th:each="p : ${prioridades}"
+                                    th:value="${p}"
+                                    th:text="${p.descricao}">
+                            </option>
+                        </select>
+                        <span class="campo-erro"
+                              th:if="${#fields.hasErrors('prioridade')}"
+                              th:errors="*{prioridade}"
+                              role="alert">
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Responsável e Prazo -->
+                <div class="form-linha">
+                    <div class="campo-grupo" th:classappend="${#fields.hasErrors('responsavel')} ? ' campo-grupo--erro'">
+                        <label for="responsavel" class="campo-label">Responsável</label>
+                        <input type="text"
+                               id="responsavel"
+                               th:field="*{responsavel}"
+                               class="campo-input"
+                               placeholder="Nome da pessoa responsável"
+                               maxlength="80">
+                        <span class="campo-erro"
+                              th:if="${#fields.hasErrors('responsavel')}"
+                              th:errors="*{responsavel}"
+                              role="alert">
+                        </span>
+                    </div>
+
+                    <div class="campo-grupo">
+                        <label for="prazo" class="campo-label">Prazo de entrega</label>
+                        <input type="date"
+                               id="prazo"
+                               th:field="*{prazo}"
+                               class="campo-input">
+                    </div>
+                </div>
+
+                <!-- Ações do formulário -->
+                <div class="form-actions">
+                    <a th:href="@{/}" class="btn btn-fantasma">Cancelar</a>
+                    <button type="submit" class="btn btn-primario-destaque">
+                        <span th:text="${demanda != null} ? 'Salvar alterações' : 'Criar demanda'">Criar demanda</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</main>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

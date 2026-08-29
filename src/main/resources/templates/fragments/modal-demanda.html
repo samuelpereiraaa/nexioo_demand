@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- Modal Acessível para Criação Rápida de Demanda -->
+<div th:fragment="modalDemanda"
+     id="modal-nova-demanda"
+     class="modal-backdrop"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="modal-demanda-titulo"
+     aria-hidden="true">
+
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Cabeçalho do Modal -->
+            <div class="modal-header">
+                <h2 id="modal-demanda-titulo" class="modal-title">Nova Demanda</h2>
+                <button type="button"
+                        class="btn-close-modal"
+                        data-close-modal
+                        aria-label="Fechar janela">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Formulário de Criação -->
+            <form th:action="@{/demandas}"
+                  th:object="${demandaForm}"
+                  method="post"
+                  class="modal-form"
+                  id="form-modal-demanda">
+
+                <!-- Título -->
+                <div class="campo-grupo">
+                    <label for="modal-titulo" class="campo-label campo-obrigatorio">Título da demanda</label>
+                    <input type="text"
+                           id="modal-titulo"
+                           th:field="*{titulo}"
+                           class="campo-input"
+                           placeholder="Ex: Definir identidade visual"
+                           maxlength="120"
+                           required
+                           autocomplete="off">
+                </div>
+
+                <!-- Descrição -->
+                <div class="campo-grupo">
+                    <label for="modal-descricao" class="campo-label">Descrição detalhada</label>
+                    <textarea id="modal-descricao"
+                              th:field="*{descricao}"
+                              class="campo-textarea"
+                              placeholder="Adicione contexto, objetivos ou critérios de aceite..."
+                              rows="3"
+                              maxlength="2000"></textarea>
+                </div>
+
+                <!-- Coluna e Prioridade -->
+                <div class="form-linha">
+                    <div class="campo-grupo">
+                        <label for="modal-coluna" class="campo-label campo-obrigatorio">Coluna</label>
+                        <select id="modal-coluna"
+                                th:field="*{coluna}"
+                                class="campo-select"
+                                required>
+                            <option th:each="c : ${T(br.com.nexioo.demand.model.Coluna).values()}"
+                                    th:value="${c}"
+                                    th:text="${c.descricao}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="campo-grupo">
+                        <label for="modal-prioridade" class="campo-label campo-obrigatorio">Prioridade</label>
+                        <select id="modal-prioridade"
+                                th:field="*{prioridade}"
+                                class="campo-select"
+                                required>
+                            <option th:each="p : ${T(br.com.nexioo.demand.model.Prioridade).values()}"
+                                    th:value="${p}"
+                                    th:text="${p.descricao}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Responsável e Prazo -->
+                <div class="form-linha">
+                    <div class="campo-grupo">
+                        <label for="modal-responsavel" class="campo-label">Responsável</label>
+                        <input type="text"
+                               id="modal-responsavel"
+                               th:field="*{responsavel}"
+                               class="campo-input"
+                               placeholder="Nome da pessoa"
+                               maxlength="80">
+                    </div>
+
+                    <div class="campo-grupo">
+                        <label for="modal-prazo" class="campo-label">Prazo de entrega</label>
+                        <input type="date"
+                               id="modal-prazo"
+                               th:field="*{prazo}"
+                               class="campo-input">
+                    </div>
+                </div>
+
+                <!-- Rodapé / Ações do Formulário -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-fantasma" data-close-modal>Cancelar</button>
+                    <button type="submit" class="btn btn-primario-destaque">Criar demanda</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

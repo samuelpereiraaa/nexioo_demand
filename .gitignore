@@ -1,0 +1,32 @@
+# Build & Output Directories
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# Media / Video Files (Large Files)
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.webm
+
+# IDE Files & Metadata
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log

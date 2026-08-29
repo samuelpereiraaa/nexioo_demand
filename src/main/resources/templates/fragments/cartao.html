@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- Fragmento Semântico do Cartão de Demanda (<section>) com Interação Fiel à Referência -->
+<section th:fragment="cartao(demanda)"
+         class="kanban-card kanban-card--interactive"
+         th:classappend="${demanda.coluna.name() == 'CONCLUIDO'} ? ' card--completed' : ''"
+         th:id="'card-' + ${demanda.id}"
+         th:attr="data-id=${demanda.id}, data-titulo=${demanda.titulo}, data-coluna=${demanda.coluna.name()}, aria-label='Demanda: ' + ${demanda.titulo}"
+         tabindex="0"
+         role="region">
+
+    <!-- Faixa superior colorida conforme a prioridade -->
+    <div th:class="'card-priority-strip priority-strip--' + ${demanda.prioridade.name().toLowerCase()}"
+         th:attr="title='Prioridade: ' + ${demanda.prioridade.descricao}">
+    </div>
+
+    <div class="card-inner">
+
+        <!-- Linha Superior: Controle Circular de Conclusão + Tag de Prioridade + Ação de Edição -->
+        <div class="card-header-row">
+            <div class="card-header-left">
+                <!-- Controle Circular para Concluir ou Reabrir a Demanda -->
+                <form method="post"
+                      th:action="@{/demandas/{id}/toggle-concluido(id=${demanda.id})}"
+                      class="card-complete-form"
+                      onclick="event.stopPropagation();">
+                    <button type="submit"
+                            class="btn-card-complete"
+                            th:classappend="${demanda.coluna.name() == 'CONCLUIDO'} ? ' is-completed' : ''"
+                            th:attr="title=${demanda.coluna.name() == 'CONCLUIDO'} ? 'Reabrir demanda' : 'Concluir demanda', aria-label=${demanda.coluna.name() == 'CONCLUIDO'} ? 'Reabrir demanda' : 'Concluir demanda'">
+                        <svg class="icon-circle-uncompleted" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"></circle>
+                        </svg>
+                        <svg class="icon-circle-completed" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Etiqueta Textual de Prioridade (Baixa, Média, Alta, Urgente) -->
+                <span th:class="'priority-tag tag--' + ${demanda.prioridade.name().toLowerCase()}"
+                      th:text="${demanda.prioridade.descricao}">
+                    Média
+                </span>
+            </div>
+
+            <!-- Botão para Editar a Demanda -->
+            <div class="card-quick-actions">
+                <a th:href="@{/demandas/{id}/editar(id=${demanda.id})}"
+                   class="btn-card-action btn-edit-quick"
+                   title="Editar demanda"
+                   th:attr="aria-label='Editar demanda: ' + ${demanda.titulo}"
+                   onclick="event.stopPropagation();">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Título da Demanda -->
+        <h3 class="card-title">
+            <a th:href="@{/demandas/{id}(id=${demanda.id})}"
+               class="card-title-link"
+               th:text="${demanda.titulo}">
+                Título da Demanda
+            </a>
+        </h3>
+
+        <!-- Conteúdo Revelado no Hover / Foco: Descrição com Expansão Suave -->
+        <div class="card-expandable-content">
+            <p th:if="${demanda.descricao != null and !#strings.isEmpty(demanda.descricao)}"
+               class="card-desc"
+               th:text="${demanda.descricao}">
+                Descrição detalhada expandida...
+            </p>
+        </div>
+
+        <!-- Rodapé do Cartão: Prazo com Ícone, Seletor de Status e Avatar -->
+        <div class="card-footer">
+
+            <div class="card-meta-left">
+                <!-- Prazo Acompanhado de Ícone (com destaque vermelho se vencido) -->
+                <div th:if="${demanda.prazo}"
+                     th:class="${demanda.prazoVencido} ? 'card-due-date due-date--expired' : 'card-due-date'"
+                     th:attr="title=${demanda.prazoVencido} ? 'Prazo vencido!' : 'Prazo de entrega'">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <time th:datetime="${demanda.prazo}"
+                          th:text="${#strings.toLowerCase(#temporals.format(demanda.prazo, 'dd MMM'))}">
+                        07 set
+                    </time>
+                    <span th:if="${demanda.prazoVencido}" class="sr-only">(prazo vencido)</span>
+                </div>
+
+                <!-- Seletor de Status para Troca Rápida de Coluna -->
+                <form method="post"
+                      th:action="@{/demandas/{id}/status(id=${demanda.id})}"
+                      class="card-move-form"
+                      onclick="event.stopPropagation();">
+                    <label th:for="'move-sel-' + ${demanda.id}" class="sr-only">Status da demanda</label>
+                    <select th:id="'move-sel-' + ${demanda.id}"
+                            name="coluna"
+                            class="card-move-select"
+                            onchange="this.form.submit()"
+                            th:attr="aria-label='Alterar status de ' + ${demanda.titulo}">
+                        <option th:each="c : ${T(br.com.nexioo.demand.model.Coluna).values()}"
+                                th:value="${c}"
+                                th:text="${c.descricao}"
+                                th:selected="${c == demanda.coluna}">
+                        </option>
+                    </select>
+                </form>
+            </div>
+
+            <!-- Avatar com Iniciais do Responsável -->
+            <div class="card-assignee-avatar"
+                 th:classappend="'avatar-theme--' + ${demanda.avatarCorIndex}"
+                 th:attr="title='Responsável: ' + ${demanda.responsavel != null ? demanda.responsavel : 'Não atribuído'}">
+                <span th:text="${demanda.iniciaisResponsavel}">SO</span>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+</body>
+</html>

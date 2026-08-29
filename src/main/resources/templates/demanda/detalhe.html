@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head(${demanda.titulo})}"></head>
+<body class="body-subpage-view">
+
+<a class="skip-to-content" href="#conteudo-detalhe">Pular para os detalhes</a>
+
+<div th:replace="~{fragments/header :: topbar}"></div>
+
+<main id="conteudo-detalhe" class="subpage-canvas" role="main">
+    <div class="subpage-container">
+
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+        <div class="subpage-header">
+            <a th:href="@{/}" class="link-back" aria-label="Voltar para o quadro">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Voltar ao quadro</span>
+            </a>
+        </div>
+
+        <article class="glass-detail-card">
+
+            <!-- Faixa superior de prioridade -->
+            <div th:class="'card-priority-strip priority-strip--' + ${demanda.prioridade.name().toLowerCase()}"></div>
+
+            <div class="detail-content">
+
+                <!-- Header de Detalhes com Badges e Ações -->
+                <div class="detail-top-row">
+                    <div class="detail-badges">
+                        <span th:class="'priority-tag tag--' + ${demanda.prioridade.name().toLowerCase()}"
+                              th:text="${demanda.prioridade.descricao}">Prioridade</span>
+                        <span class="column-badge" th:text="${demanda.coluna.descricao}">Coluna</span>
+                        <span th:if="${demanda.prazoVencido}" class="expired-badge">Prazo vencido</span>
+                    </div>
+
+                    <div class="detail-actions">
+                        <a th:href="@{/demandas/{id}/editar(id=${demanda.id})}" class="btn btn-secundario-dark">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            <span>Editar</span>
+                        </a>
+                        <a th:href="@{/demandas/{id}/excluir(id=${demanda.id})}" class="btn btn-perigo-dark">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            <span>Excluir</span>
+                        </a>
+                    </div>
+                </div>
+
+                <h1 class="detail-title" th:text="${demanda.titulo}">Título da demanda</h1>
+
+                <!-- Descrição -->
+                <div class="detail-section">
+                    <h2 class="section-heading">Descrição</h2>
+                    <div class="detail-description-box"
+                         th:if="${demanda.descricao != null and !#strings.isEmpty(demanda.descricao)}"
+                         th:text="${demanda.descricao}">
+                        Descrição detalhada...
+                    </div>
+                    <p class="detail-empty-text"
+                       th:unless="${demanda.descricao != null and !#strings.isEmpty(demanda.descricao)}">
+                        Nenhuma descrição informada.
+                    </p>
+                </div>
+
+                <!-- Grade de Metadados -->
+                <div class="detail-meta-grid">
+                    <div class="meta-box">
+                        <span class="meta-box-label">Responsável</span>
+                        <div class="meta-assignee-row">
+                            <div class="card-assignee-avatar avatar-sm"
+                                 th:classappend="'avatar-theme--' + ${demanda.avatarCorIndex}">
+                                <span th:text="${demanda.iniciaisResponsavel}">ND</span>
+                            </div>
+                            <span class="meta-box-value" th:text="${demanda.responsavel != null ? demanda.responsavel : 'Não atribuído'}">—</span>
+                        </div>
+                    </div>
+
+                    <div class="meta-box">
+                        <span class="meta-box-label">Coluna Atual</span>
+                        <span class="meta-box-value" th:text="${demanda.coluna.descricao}">—</span>
+                    </div>
+
+                    <div class="meta-box">
+                        <span class="meta-box-label">Prazo de Entrega</span>
+                        <span th:if="${demanda.prazo}"
+                              th:class="${demanda.prazoVencido} ? 'meta-box-value value--expired' : 'meta-box-value'">
+                            <time th:datetime="${demanda.prazo}"
+                                  th:text="${#temporals.format(demanda.prazo, 'dd/MM/yyyy')}">—</time>
+                        </span>
+                        <span th:unless="${demanda.prazo}" class="meta-box-value">—</span>
+                    </div>
+
+                    <div class="meta-box">
+                        <span class="meta-box-label">Criada em</span>
+                        <time class="meta-box-value"
+                              th:datetime="${demanda.criadoEm}"
+                              th:text="${#temporals.format(demanda.criadoEm, 'dd/MM/yyyy HH:mm')}">—</time>
+                    </div>
+                </div>
+
+                <!-- Alterar Status Rápido -->
+                <div class="detail-status-change-box">
+                    <h2 class="section-heading">Mover para outra coluna</h2>
+                    <form method="post"
+                          th:action="@{/demandas/{id}/status(id=${demanda.id})}"
+                          class="status-change-form">
+                        <select name="coluna" class="campo-select select-inline" aria-label="Selecione a nova coluna">
+                            <option th:each="c : ${colunas}"
+                                    th:value="${c}"
+                                    th:text="${c.descricao}"
+                                    th:selected="${c == demanda.coluna}">
+                            </option>
+                        </select>
+                        <button type="submit" class="btn btn-primario-destaque">Mover demanda</button>
+                    </form>
+                </div>
+
+            </div>
+        </article>
+
+    </div>
+</main>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

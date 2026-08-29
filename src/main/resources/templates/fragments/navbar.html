@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+<nav th:fragment="navbar" class="navbar" role="navigation" aria-label="Navegação principal">
+    <div class="navbar-inner">
+        <a class="navbar-brand" th:href="@{/}" aria-label="Nexioo Demand — ir para o quadro">
+            <span class="brand-icone" aria-hidden="true">◈</span>
+            <span class="brand-nome">Nexioo Demand</span>
+        </a>
+        <div class="navbar-acoes">
+            <a class="btn btn-primario" th:href="@{/demandas/nova}">
+                <span aria-hidden="true">+</span> Nova Demanda
+            </a>
+        </div>
+    </div>
+</nav>
+</body>
+</html>

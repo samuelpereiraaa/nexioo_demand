@@ -1,0 +1,700 @@
+/* ==========================================================================
+   NEXIOO DEMAND — KANBAN BOARD CSS (DARK PREMIUM THEME)
+   Quadro, Colunas Grafite, Seções Interativas (<section>), Hover Accordion,
+   Transições Fluidas, Dimming de Vizinhas, Expansão e Responsividade.
+   ========================================================================== */
+
+/* ── Canvas Principal do Quadro (Full-Window) ── */
+.board-canvas {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 52px);
+    overflow: hidden;
+    position: relative;
+}
+
+/* ── Barra de Indicador de Filtro Ativo ── */
+.filter-indicator-bar {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+}
+
+.filter-indicator-text strong {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.btn-clear-filter {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-danger);
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+    background: var(--color-danger-soft);
+    border: 1px solid var(--color-danger-border);
+    transition: all var(--transition-fast);
+}
+
+.btn-clear-filter:hover {
+    background: rgba(255, 102, 117, 0.25);
+    color: #ffffff;
+}
+
+/* ── Pista Horizontal de Colunas ── */
+.board-columns-track {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 22px 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar técnica refinada */
+.board-columns-track::-webkit-scrollbar {
+    height: 7px;
+}
+.board-columns-track::-webkit-scrollbar-track {
+    background: var(--color-bg);
+    border-radius: var(--radius-full);
+    margin: 0 22px;
+}
+.board-columns-track::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+}
+.board-columns-track::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
+
+/* ── Colunas do Quadro (Superfície Grafite) ── */
+.kanban-column {
+    flex: 0 0 288px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 90px);
+    box-shadow: var(--shadow-md);
+    transition: flex var(--transition-smooth), max-width var(--transition-smooth), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kanban-column:focus-within {
+    border-color: rgba(0, 230, 168, 0.35);
+}
+
+/* ── Estado da Coluna Recolhida ── */
+.kanban-column.kanban-column--collapsed {
+    flex: 0 0 46px;
+    min-width: 46px;
+    max-width: 46px;
+    background: var(--color-surface);
+    cursor: pointer;
+}
+
+.kanban-column.kanban-column--collapsed .column-header,
+.kanban-column.kanban-column--collapsed .column-cards-list,
+.kanban-column.kanban-column--collapsed .column-footer {
+    display: none;
+}
+
+.kanban-column.kanban-column--collapsed .column-collapsed-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 6px;
+    height: 100%;
+}
+
+.column-collapsed-view {
+    display: none;
+}
+
+.btn-column-expand {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.btn-column-expand:hover {
+    color: var(--color-accent);
+    background: var(--color-surface-hover);
+}
+
+.collapsed-title {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.collapsed-count {
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    color: var(--color-accent);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Cabeçalho da Coluna Normal ── */
+.column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    flex-shrink: 0;
+}
+
+.column-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.column-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+}
+
+.column-count {
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.column-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-column-collapse,
+.btn-column-menu {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-xs);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-column-collapse:hover,
+.btn-column-menu:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-accent);
+}
+
+/* ── Lista Vertical de Cartões ── */
+.column-cards-list {
+    padding: 8px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 24px;
+}
+
+.column-cards-list::-webkit-scrollbar {
+    width: 5px;
+}
+.column-cards-list::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+}
+
+/* Dimming suave de seções vizinhas na mesma coluna durante o hover */
+.column-cards-list:hover .kanban-card:not(:hover) {
+    opacity: 0.72;
+    transform: scale(0.992);
+    filter: brightness(0.92);
+}
+
+/* ── Estado Vazio da Coluna ── */
+.column-empty-state {
+    padding: 22px 10px;
+    text-align: center;
+    border: 1px dashed var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    margin: 4px 0;
+    background: rgba(24, 28, 25, 0.4);
+}
+
+.empty-state-text {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+/* ── Rodapé da Coluna: Botão + Adicionar Demanda ── */
+.column-footer {
+    padding: 4px 10px 10px;
+    border-top: 1px solid var(--color-border-subtle);
+    flex-shrink: 0;
+}
+
+.btn-add-card {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--transition-fast);
+}
+
+.btn-add-card:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+
+.btn-add-icon {
+    display: flex;
+    align-items: center;
+    color: var(--color-accent);
+}
+
+/* ==========================================================================
+   SEÇÕES INTERATIVAS (<section>) — Cartões com Transições, Expansão e Controles
+   ========================================================================== */
+
+.kanban-card {
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    /* Transições coordenadas e fluidas */
+    transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1),
+                box-shadow 300ms cubic-bezier(0.25, 1, 0.5, 1),
+                opacity 240ms ease,
+                filter 240ms ease,
+                background-color 200ms ease,
+                border-color 200ms ease;
+    will-change: transform, box-shadow;
+}
+
+/* ── Estado Ativo: Hover, Expansão e Foco ── */
+.kanban-card:hover,
+.kanban-card.is-expanded,
+.kanban-card:focus-within {
+    opacity: 1 !important;
+    filter: none !important;
+    background: var(--color-surface-hover);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    z-index: 10;
+}
+
+.kanban-card:focus-visible {
+    outline: none;
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-md);
+}
+
+/* ── Faixa Superior Colorida Conforme a Prioridade ── */
+.card-priority-strip {
+    height: 2.5px;
+    width: 100%;
+    transition: height 200ms ease;
+}
+
+.kanban-card:hover .card-priority-strip,
+.kanban-card.is-expanded .card-priority-strip,
+.kanban-card:focus-within .card-priority-strip {
+    height: 3px;
+}
+
+.priority-strip--baixa   { background: var(--prioridade-baixa-solid); }
+.priority-strip--media   { background: var(--prioridade-media-solid); }
+.priority-strip--alta    { background: var(--prioridade-alta-solid); }
+
+.card-inner {
+    padding: 11px 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ── Linha Superior: Check de Conclusão, Tag de Prioridade e Edição ── */
+.card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Formulário e Botão de Conclusão Circular */
+.card-complete-form {
+    display: flex;
+    align-items: center;
+}
+
+.btn-card-complete {
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-card-complete:hover {
+    color: var(--color-accent);
+    transform: scale(1.15);
+}
+
+.btn-card-complete .icon-circle-completed {
+    display: none;
+}
+
+.btn-card-complete.is-completed .icon-circle-uncompleted {
+    display: none;
+}
+
+.btn-card-complete.is-completed .icon-circle-completed {
+    display: block;
+    color: var(--color-accent);
+}
+
+/* Tag Textual de Prioridade */
+.priority-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.tag--baixa   { background: var(--prioridade-baixa-bg);   color: var(--prioridade-baixa-txt);   border-color: var(--prioridade-baixa-border); }
+.tag--media   { background: var(--prioridade-media-bg);   color: var(--prioridade-media-txt);   border-color: var(--prioridade-media-border); }
+.tag--alta    { background: var(--prioridade-alta-bg);    color: var(--prioridade-alta-txt);    border-color: var(--prioridade-alta-border); }
+
+/* Ações Rápidas (Botão de Edição) */
+.card-quick-actions {
+    display: flex;
+    align-items: center;
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+.kanban-card:hover .card-quick-actions,
+.kanban-card.is-expanded .card-quick-actions,
+.kanban-card:focus-within .card-quick-actions {
+    opacity: 1;
+}
+
+.btn-card-action {
+    color: var(--color-text-muted);
+    padding: 3px;
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    transition: all var(--transition-fast);
+}
+
+.btn-card-action:hover {
+    color: var(--color-accent);
+    background: var(--color-surface);
+}
+
+/* ── Título da Demanda ── */
+.card-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--color-text);
+    word-break: break-word;
+    transition: color var(--transition-fast);
+}
+
+.card-title-link {
+    color: inherit;
+    display: block;
+}
+
+.kanban-card:hover .card-title-link,
+.kanban-card.is-expanded .card-title-link {
+    color: #ffffff;
+}
+
+/* Demanda concluída com atenuação sutil */
+.card--completed .card-title {
+    color: var(--color-text-secondary);
+}
+
+/* ── Conteúdo Expandido Revelado no Hover / Foco ── */
+.card-expandable-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-3px);
+    transition: max-height 300ms cubic-bezier(0.25, 1, 0.5, 1),
+                opacity 240ms ease-out,
+                transform 240ms ease-out,
+                margin-top 240ms ease-out;
+}
+
+.kanban-card:hover .card-expandable-content,
+.kanban-card.is-expanded .card-expandable-content,
+.kanban-card:focus-within .card-expandable-content {
+    max-height: 160px;
+    opacity: 1;
+    transform: translateY(0);
+    margin-top: 4px;
+}
+
+.card-desc {
+    font-size: 11.5px;
+    color: var(--color-text-secondary);
+    line-height: 1.45;
+    word-break: break-word;
+    background: rgba(8, 10, 9, 0.45);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 7px 9px;
+}
+
+/* ── Rodapé do Cartão: Prazo, Seletor de Status e Avatar ── */
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-border-subtle);
+    transition: border-color var(--transition-fast);
+}
+
+.kanban-card:hover .card-footer,
+.kanban-card.is-expanded .card-footer {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.card-meta-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Prazo com Ícone de Relógio */
+.card-due-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--color-text-muted);
+    transition: color var(--transition-fast);
+}
+
+.kanban-card:hover .card-due-date,
+.kanban-card.is-expanded .card-due-date {
+    color: var(--color-text-secondary);
+}
+
+/* Prazo Vencido com destaque discreto */
+.due-date--expired {
+    color: var(--prioridade-alta-txt) !important;
+    font-weight: 600;
+}
+
+.due-date--expired svg {
+    color: var(--prioridade-alta-txt);
+}
+
+/* Seletor Rápido de Mudança de Status */
+.card-move-form {
+    display: flex;
+    align-items: center;
+}
+
+.card-move-select {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    border-radius: var(--radius-xs);
+    padding: 2px 14px 2px 5px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23747D77' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    max-width: 95px;
+    transition: all var(--transition-fast);
+}
+
+.card-move-select:hover {
+    border-color: var(--color-accent);
+    color: var(--color-text);
+}
+
+/* Avatar do Responsável */
+.card-assignee-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    font-size: 9.5px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.kanban-card:hover .card-assignee-avatar,
+.kanban-card.is-expanded .card-assignee-avatar {
+    transform: scale(1.08);
+}
+
+/* ── Fallback e Otimização para Dispositivos sem Hover (Touch / Mobile) ── */
+@media (hover: none) {
+    .column-cards-list:hover .kanban-card:not(:hover) {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+
+    .kanban-card.is-expanded .card-expandable-content {
+        max-height: 140px;
+        opacity: 1;
+        transform: translateY(0);
+        margin-top: 4px;
+    }
+
+    .card-quick-actions {
+        opacity: 0.85;
+    }
+}
+
+/* ── Prefers Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+    .kanban-card,
+    .card-priority-strip,
+    .card-expandable-content,
+    .column-cards-list:hover .kanban-card:not(:hover) {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+
+/* ── Responsividade Geral do Quadro ── */
+@media (max-width: 900px) {
+    .topbar-inner {
+        padding: 0 var(--space-md);
+    }
+    .board-title-badge {
+        display: none;
+    }
+    .search-input {
+        width: 140px;
+    }
+    .search-input:focus {
+        width: 180px;
+    }
+}
+
+@media (max-width: 600px) {
+    .topbar-inner {
+        padding: 0 12px;
+        gap: 8px;
+    }
+    .search-input-wrapper {
+        display: none;
+    }
+    .btn-nova-demanda span:last-child {
+        display: none;
+    }
+    .btn-nova-demanda {
+        padding: 6px 10px;
+    }
+    .board-columns-track {
+        padding: 12px 14px;
+        gap: 12px;
+    }
+    .kanban-column {
+        flex: 0 0 264px;
+    }
+}

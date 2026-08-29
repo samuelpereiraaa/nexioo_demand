@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Quadro de Demandas')}"></head>
+<body class="body-board-view">
+
+<!-- Link acessível para pular direto ao conteúdo principal -->
+<a class="skip-to-content" href="#conteudo-quadro">Pular para o quadro de demandas</a>
+
+<!-- Barra Superior Escura Translúcida -->
+<div th:replace="~{fragments/header :: topbar}"></div>
+
+<!-- Container Principal do Quadro Kanban -->
+<main id="conteudo-quadro" class="board-canvas" role="main">
+
+    <!-- Container de Alertas / Notificações Toast -->
+    <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+    <!-- Indicador de Filtro Ativo (se houver pesquisa aplicada) -->
+    <div th:if="${temFiltro}" class="filter-indicator-bar" role="status">
+        <span class="filter-indicator-text">
+            Filtro ativo:
+            <strong th:if="${filtroTermo != null and !#strings.isEmpty(filtroTermo)}" th:text="'«' + ${filtroTermo} + '»'">termo</strong>
+        </span>
+        <a th:href="@{/}" class="btn-clear-filter" aria-label="Remover filtros e exibir todas as demandas">
+            ✕ Limpar filtro
+        </a>
+    </div>
+
+    <!-- ── Lista Horizontal de Colunas Kanban ────────────────────────── -->
+    <div class="board-columns-track" aria-label="Colunas do Quadro Kanban">
+
+        <!-- Itera sobre as 4 colunas usando o fragmento coluna -->
+        <th:block th:each="coluna : ${colunas}">
+            <div th:replace="~{fragments/coluna :: coluna(${coluna}, ${demandas.get(coluna) != null ? demandas.get(coluna) : {}})}"></div>
+        </th:block>
+
+    </div>
+
+</main>
+
+<!-- Modal de Criação Rápida de Demanda -->
+<div th:replace="~{fragments/modal-demanda :: modalDemanda}"></div>
+
+<!-- Script Principal -->
+<script th:src="@{/js/app.js}"></script>
+
+</body>
+</html>

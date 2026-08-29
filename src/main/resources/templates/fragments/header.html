@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<header th:fragment="topbar" class="topbar" role="banner">
+    <div class="topbar-inner">
+
+        <!-- ── Lado Esquerdo: Marca Monograma e Título do Quadro ───────────── -->
+        <div class="topbar-left">
+            <a th:href="@{/}" class="brand" aria-label="Nexioo Demand — Ir para o quadro de demandas">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="4" width="4" height="16" rx="1.5" fill="currentColor"/>
+                        <rect x="10" y="4" width="4" height="11" rx="1.5" fill="currentColor" fill-opacity="0.85"/>
+                        <rect x="17" y="4" width="4" height="6" rx="1.5" fill="currentColor" fill-opacity="0.6"/>
+                    </svg>
+                </span>
+                <span class="brand-text">Nexioo Demand</span>
+            </a>
+
+            <div class="board-title-badge" role="heading" aria-level="1">
+                <span class="board-title-text">Quadro de demandas</span>
+                <button type="button" class="btn-icon-subtle" aria-label="Opções do quadro" title="Opções do quadro">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Lado Direito: Ações, Pesquisa, Avatar, Nova Demanda, Menu ─── -->
+        <div class="topbar-right">
+
+            <!-- Formulário de Pesquisa Integrado -->
+            <form method="get" th:action="@{/}" class="search-form" role="search">
+                <div class="search-input-wrapper">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </span>
+                    <input type="search"
+                           id="termo"
+                           name="termo"
+                           class="search-input"
+                           placeholder="Pesquisar demandas..."
+                           th:value="${filtroTermo}"
+                           autocomplete="off"
+                           aria-label="Pesquisar demandas no quadro">
+                    <a th:if="${temFiltro}" th:href="@{/}" class="search-clear" aria-label="Limpar filtro de pesquisa" title="Limpar pesquisa">✕</a>
+                </div>
+            </form>
+
+            <!-- Avatar do Usuário -->
+            <div class="user-avatar-wrapper" title="Usuário logado: Samuel Oliveira">
+                <div class="user-avatar" aria-label="Perfil do usuário: SO">
+                    <span>SO</span>
+                </div>
+            </div>
+
+            <!-- Botão Principal: Nova Demanda (Verde-Esmeralda) -->
+            <button type="button"
+                    class="btn-nova-demanda"
+                    id="btn-abrir-modal-topo"
+                    data-modal-target="modal-nova-demanda"
+                    aria-haspopup="dialog"
+                    aria-label="Adicionar nova demanda ao quadro">
+                <span class="btn-icon" aria-hidden="true">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </span>
+                <span>Nova demanda</span>
+            </button>
+
+            <!-- Menu de Opções (Três Pontos) -->
+            <button type="button"
+                    class="btn-icon-topbar"
+                    aria-label="Mais opções do quadro"
+                    title="Mais opções">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                    <circle cx="19" cy="12" r="1.5" fill="currentColor"></circle>
+                    <circle cx="5" cy="12" r="1.5" fill="currentColor"></circle>
+                </svg>
+            </button>
+
+        </div>
+
+    </div>
+</header>
+
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- Fragmento da Coluna Kanban (Dark Premium) com Ações e Contadores Atualizados -->
+<section th:fragment="coluna(coluna, listaDemandas)"
+         class="kanban-column"
+         th:id="'coluna-' + ${coluna.name().toLowerCase()}"
+         th:attr="data-coluna-id=${coluna.name()}, aria-label='Coluna ' + ${coluna.descricao}">
+
+    <!-- Cabeçalho da Coluna -->
+    <header class="column-header">
+        <div class="column-title-group">
+            <h2 class="column-title" th:text="${coluna.descricao}">Backlog</h2>
+            <span class="column-count"
+                  th:text="${#lists.size(listaDemandas)}"
+                  th:attr="aria-label='Total de ' + ${#lists.size(listaDemandas)} + ' demandas'">0</span>
+        </div>
+
+        <div class="column-actions">
+            <!-- Botão de Recolher / Expandir Coluna -->
+            <button type="button"
+                    class="btn-column-collapse"
+                    data-action="toggle-collapse-coluna"
+                    aria-label="Recolher coluna"
+                    title="Recolher coluna">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="4 14 10 14 10 20"></polyline>
+                    <polyline points="20 10 14 10 14 4"></polyline>
+                </svg>
+            </button>
+
+            <!-- Acesso ao Menu de Opções da Coluna -->
+            <button type="button"
+                    class="btn-column-menu"
+                    aria-label="Opções da coluna"
+                    th:attr="title='Opções da coluna ' + ${coluna.descricao}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                    <circle cx="19" cy="12" r="1.5" fill="currentColor"></circle>
+                    <circle cx="5" cy="12" r="1.5" fill="currentColor"></circle>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Cabeçalho Vertical para Coluna Recolhida -->
+    <div class="column-collapsed-view" aria-hidden="true">
+        <button type="button"
+                class="btn-column-expand"
+                data-action="toggle-collapse-coluna"
+                title="Expandir coluna"
+                aria-label="Expandir coluna">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <polyline points="9 21 3 21 3 15"></polyline>
+                <line x1="21" y1="3" x2="14" y2="10"></line>
+                <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+        </button>
+        <span class="collapsed-title" th:text="${coluna.descricao}">Backlog</span>
+        <span class="collapsed-count" th:text="${#lists.size(listaDemandas)}">0</span>
+    </div>
+
+    <!-- Lista Vertical de Cartões (<section>) -->
+    <div class="column-cards-list"
+         th:attr="aria-label='Cartões em ' + ${coluna.descricao}">
+
+        <!-- Renderiza as Seções Semânticas de Demanda -->
+        <th:block th:each="demanda : ${listaDemandas}">
+            <div th:replace="~{fragments/cartao :: cartao(${demanda})}"></div>
+        </th:block>
+
+        <!-- Estado Vazio quando a coluna não tiver demandas -->
+        <div th:if="${#lists.isEmpty(listaDemandas)}" class="column-empty-state">
+            <span class="empty-state-text">Nenhuma demanda</span>
+        </div>
+
+    </div>
+
+    <!-- Rodapé da Coluna: Ação de Adicionar Demanda -->
+    <footer class="column-footer">
+        <button type="button"
+                class="btn-add-card"
+                data-modal-target="modal-nova-demanda"
+                th:attr="data-coluna-default=${coluna.name()}, aria-label='Adicionar demanda na coluna ' + ${coluna.descricao}">
+            <span class="btn-add-icon" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </span>
+            <span>+ Adicionar demanda</span>
+        </button>
+    </footer>
+
+</section>
+
+</body>
+</html>
