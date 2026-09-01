@@ -17,4 +17,7 @@ public interface ColunaRepository {
     List<Coluna> listarTodas();
 
     boolean existePorId(String id);
+
+    void excluir(String id);
 }
+

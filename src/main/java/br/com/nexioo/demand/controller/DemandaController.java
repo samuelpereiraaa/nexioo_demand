@@ -23,8 +23,10 @@ import java.util.List;
  * Gerencia o ciclo de vida e interações detalhadas das demandas.
  */
 @Controller
+@CrossOrigin(origins = "*")
 @RequestMapping("/demandas")
 public class DemandaController {
+
 
     private final DemandaService demandaService;
     private final ColunaService colunaService;
@@ -82,6 +84,45 @@ public class DemandaController {
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
     }
+
+    @GetMapping("/{id}/cartao")
+    public String cartaoAtualizado(@PathVariable Long id, Model model) {
+        model.addAttribute("demanda", demandaService.buscarPorId(id));
+        model.addAttribute("colunas", colunaService.listarTodas());
+        return "fragments/cartao :: cartao";
+    }
+
+    /**
+     * Criação rápida de demanda via compositor inline do quadro.
+     * Não usa bean validation — valida manualmente para mensagens mais diretas.
+     * Retorna o fragmento HTML do cartão recém-criado.
+     */
+    @PostMapping("/compositor")
+    public String criarViaCompositor(
+            @ModelAttribute DemandaForm form,
+            Model model,
+            javax.servlet.http.HttpServletResponse response) {
+
+        String titulo = form.getTitulo();
+        if (titulo == null || titulo.trim().isEmpty()) {
+            response.setStatus(422);
+            return "fragments/cartao :: cartao-vazio";
+        }
+
+        form.setTitulo(titulo.trim());
+        if (form.getPrioridade() == null) {
+            form.setPrioridade(Prioridade.MEDIA);
+        }
+        if (form.getColuna() == null) {
+            form.setColuna(colunaService.buscarPadrao());
+        }
+
+        Demanda nova = demandaService.criar(form);
+        model.addAttribute("demanda", nova);
+        model.addAttribute("colunas", colunaService.listarTodas());
+        return "fragments/cartao :: cartao";
+    }
+
 
     @GetMapping("/{id}")
     public String detalhe(@PathVariable Long id, Model model) {
@@ -161,8 +202,6 @@ public class DemandaController {
         if (coluna != null) form.setColuna(coluna);
         if (prioridade != null) form.setPrioridade(prioridade);
         if (responsavel != null) form.setResponsavel(responsavel);
-        form.setPrazo(prazo);
-
         demanda = demandaService.editar(id, form);
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
@@ -202,6 +241,17 @@ public class DemandaController {
         return "fragments/modal-detalhe :: modalDetalheConteudo";
     }
 
+    @PostMapping("/{id}/checklists/renomear")
+    public String renomearChecklist(
+            @PathVariable Long id,
+            @RequestParam Long checklistId,
+            @RequestParam String titulo,
+            Model model) {
+        Demanda demanda = demandaService.renomearChecklist(id, checklistId, titulo);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
     @PostMapping("/{id}/checklists/remover")
     public String removerChecklist(@PathVariable Long id, @RequestParam Long checklistId, Model model) {
         Demanda demanda = demandaService.removerChecklist(id, checklistId);
@@ -219,6 +269,18 @@ public class DemandaController {
     @PostMapping("/{id}/checklists/itens/toggle")
     public String toggleItemChecklist(@PathVariable Long id, @RequestParam Long checklistId, @RequestParam Long itemId, Model model) {
         Demanda demanda = demandaService.toggleItemChecklist(id, checklistId, itemId);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/checklists/itens/atualizar")
+    public String atualizarItemChecklist(
+            @PathVariable Long id,
+            @RequestParam Long checklistId,
+            @RequestParam Long itemId,
+            @RequestParam String texto,
+            Model model) {
+        Demanda demanda = demandaService.atualizarItemChecklist(id, checklistId, itemId, texto);
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
     }
@@ -267,29 +329,43 @@ public class DemandaController {
     // ── Alterar status / Conclusão ───────────────────────────────────────────
 
     @PostMapping("/{id}/status")
-    public String alterarStatus(@PathVariable Long id, @RequestParam Coluna coluna, RedirectAttributes redirectAttributes) {
-        demandaService.alterarColuna(id, coluna);
+    public String alterarStatus(
+            @PathVariable Long id,
+            @RequestParam Coluna coluna,
+            @RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        Demanda demanda = demandaService.alterarColuna(id, coluna);
+        if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+            model.addAttribute("demanda", demanda);
+            model.addAttribute("colunas", colunaService.listarTodas());
+            return "fragments/cartao :: cartao";
+        }
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Status atualizado com sucesso.");
         return "redirect:/";
     }
 
     @PostMapping("/{id}/toggle-concluido")
-    public String toggleConcluido(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        Demanda demanda = demandaService.buscarPorId(id);
-        boolean isConcluido = demanda.getColuna() != null
-                && "CONCLUIDO".equalsIgnoreCase(demanda.getColuna().getId());
-
-        if (isConcluido) {
-            Coluna colunaAFazer = colunaService.buscarPorId("A_FAZER");
-            demandaService.alterarColuna(id, colunaAFazer);
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda reaberta.");
-        } else {
-            Coluna colunaConcluido = colunaService.buscarPorId("CONCLUIDO");
-            demandaService.alterarColuna(id, colunaConcluido);
-            redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda concluída!");
+    public String toggleConcluido(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        Demanda demanda = demandaService.alternarConclusao(id);
+        if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+            model.addAttribute("demanda", demanda);
+            model.addAttribute("colunas", colunaService.listarTodas());
+            return "fragments/cartao :: cartao";
         }
+        boolean concluida = demanda.getColuna() != null
+                && Coluna.CONCLUIDO.getId().equalsIgnoreCase(demanda.getColuna().getId());
+        redirectAttributes.addFlashAttribute(
+                "mensagemSucesso",
+                concluida ? "Demanda concluída!" : "Demanda reaberta."
+        );
         return "redirect:/";
     }
+
 
     // ── Excluir ──────────────────────────────────────────────────────────────
 

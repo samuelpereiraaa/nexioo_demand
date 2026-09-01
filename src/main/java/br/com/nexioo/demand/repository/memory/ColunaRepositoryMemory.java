@@ -8,7 +8,7 @@ import java.util.*;
 
 /**
  * Implementação em memória do {@link ColunaRepository}.
- * Inicializado com as 4 colunas padrão do Kanban.
+ * Inicializado com a lista inicial "Trello Starter Guide".
  */
 @Repository
 public class ColunaRepositoryMemory implements ColunaRepository {
@@ -17,10 +17,7 @@ public class ColunaRepositoryMemory implements ColunaRepository {
             Collections.synchronizedMap(new LinkedHashMap<>());
 
     public ColunaRepositoryMemory() {
-        salvar(Coluna.BACKLOG);
-        salvar(Coluna.A_FAZER);
-        salvar(Coluna.EM_ANDAMENTO);
-        salvar(Coluna.CONCLUIDO);
+        salvar(new Coluna("BACKLOG", "Trello Starter Guide", 1));
     }
 
     @Override
@@ -47,4 +44,13 @@ public class ColunaRepositoryMemory implements ColunaRepository {
         if (id == null) return false;
         return armazenamento.containsKey(id);
     }
+
+    @Override
+    public void excluir(String id) {
+        if (id != null) {
+            armazenamento.remove(id);
+            armazenamento.keySet().removeIf(k -> k.equalsIgnoreCase(id));
+        }
+    }
 }
+

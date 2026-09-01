@@ -1,0 +1,366 @@
+/* ── Projetos / Quadros Page Stylesheet — Fidelidade Fiel ao Design Trello ── */
+
+:root {
+    --bg-projects-page: #1d2125;
+    --bg-sidebar: #16191d;
+    --bg-card-hover: rgba(255, 255, 255, 0.05);
+    --border-subtle: rgba(255, 255, 255, 0.12);
+    --text-primary: #9fedc7;
+    --text-heading: #b6c2cf;
+    --text-muted: #9fedc7;
+    --color-trello-blue: #579dff;
+    --color-green-icon: #22c55e;
+}
+
+body.projetos-page-body {
+    background-color: var(--bg-projects-page) !important;
+    color: var(--text-heading);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Noto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* ── Container Principal com Sidebar e Área de Conteúdo ── */
+.projects-layout-container {
+    display: flex;
+    min-height: calc(100vh - 54px);
+}
+
+/* ── Sidebar Lateral Esquerda ── */
+.projects-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border-subtle);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.projects-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #b6c2cf;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.sidebar-nav-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+}
+
+.sidebar-nav-item.is-active {
+    background: rgba(87, 157, 255, 0.18);
+    color: var(--color-trello-blue);
+    font-weight: 600;
+}
+
+.sidebar-nav-item.is-active svg {
+    color: var(--color-trello-blue);
+}
+
+.sidebar-divider {
+    height: 1px;
+    background-color: var(--border-subtle);
+    margin: 4px 0;
+}
+
+.sidebar-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9fedc7;
+    padding: 0 12px;
+    margin-bottom: 6px;
+}
+
+.workspace-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #b6c2cf;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 150ms ease;
+}
+
+.workspace-menu-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+}
+
+.workspace-icon-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: var(--color-green-icon);
+    color: #1d2125;
+    font-weight: 700;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── Conteúdo Principal (Projetos / Quadros) ── */
+.projects-main-content {
+    flex: 1;
+    padding: 32px 48px;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+}
+
+.projects-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #b6c2cf;
+    margin-bottom: 16px;
+}
+
+.projects-section-header svg {
+    color: #9fedc7;
+}
+
+/* ── Grid de Cards de Projeto ── */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+/* Card de Projeto Individual */
+.project-card {
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+    cursor: pointer;
+}
+
+.project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.project-card-title {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.project-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.project-card-meta {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.35);
+    padding: 2px 6px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+}
+
+/* Card Ação: Criar Novo Quadro */
+.project-card-create {
+    height: 100px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px dashed rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.project-card-create:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.project-card-create-text {
+    color: #9fedc7;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ── Seção Suas Áreas de Trabalho / Meus Projetos ── */
+.workspace-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.workspace-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.workspace-title-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #b6c2cf;
+}
+
+/* Abas de Navegação (Quadros | Membros | Configurações) */
+.workspace-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+.workspace-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #b6c2cf;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.workspace-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+}
+
+.workspace-tab-btn.is-active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+/* ── Botão Rodapé da Seção ── */
+.btn-view-closed-boards {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #b6c2cf;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.btn-view-closed-boards:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+/* ── Botão Criar Azul na Topbar ── */
+.btn-topbar-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-trello-blue);
+    color: #1d2125;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 150ms ease, transform 150ms ease;
+    margin-left: 8px;
+}
+
+.btn-topbar-create:hover {
+    filter: brightness(1.15);
+}
+
+/* ── Modal de Criação de Projeto ── */
+.project-modal-dialog {
+    max-width: 440px;
+    width: 90%;
+    background: #22272b;
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 24px;
+    color: #b6c2cf;
+}
+
+.project-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.color-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.color-option {
+    height: 48px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.color-option:hover {
+    transform: scale(1.05);
+}
+
+.color-option.is-selected {
+    border-color: #ffffff;
+}

@@ -89,7 +89,8 @@
                            placeholder="Título da demanda"
                            maxlength="120"
                            aria-label="Título da demanda"
-                           onblur="window.salvarTituloModal(this.value)">
+                           th:attr="data-original-value=${demanda.titulo}"
+                           onblur="window.salvarTituloModal(this)">
                 </div>
             </div>
 
@@ -279,7 +280,13 @@
                             <polyline points="9 11 12 14 22 4"></polyline>
                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                         </svg>
-                        <h3 class="modal-section-title" th:text="${chk.titulo}">Checklist</h3>
+                        <input type="text"
+                               class="checklist-title-input"
+                               th:value="${chk.titulo}"
+                               th:attr="data-original-value=${chk.titulo}"
+                               maxlength="120"
+                               aria-label="Título da checklist"
+                               th:onblur="'window.renomearChecklistModal(' + ${chk.id} + ', this)'">
                     </div>
                     <button type="button" class="btn-subtle-sm danger-text" th:onclick="'window.removerChecklistModal(' + ${chk.id} + ')'">Excluir</button>
                 </div>
@@ -299,16 +306,26 @@
                                class="chk-item-checkbox"
                                th:checked="${item.concluido}"
                                th:onchange="'window.toggleChecklistItemModal(' + ${chk.id} + ',' + ${item.id} + ')'">
-                        <span class="chk-item-text"
-                              th:classappend="${item.concluido} ? ' is-done' : ''"
-                              th:text="${item.texto}">Item da checklist</span>
+                        <input type="text"
+                               class="chk-item-text chk-item-edit-input"
+                               th:classappend="${item.concluido} ? ' is-done' : ''"
+                               th:value="${item.texto}"
+                               th:attr="data-original-value=${item.texto}"
+                               maxlength="240"
+                               aria-label="Texto do item da checklist"
+                               th:onblur="'window.atualizarChecklistItemModal(' + ${chk.id} + ',' + ${item.id} + ', this)'">
                         <button type="button" class="btn-remove-item" th:onclick="'window.removerChecklistItemModal(' + ${chk.id} + ',' + ${item.id} + ')'">✕</button>
                     </div>
                 </div>
 
                 <!-- Form Adicionar Item -->
                 <div class="add-checklist-item-form">
-                    <input type="text" th:id="'input-item-chk-' + ${chk.id}" class="chk-item-input" placeholder="Adicionar um item..." onkeydown="if(event.key==='Enter'){window.adicionarItemChecklistModal(this, [[${chk.id}]]);}"/>
+                    <input type="text"
+                           th:id="'input-item-chk-' + ${chk.id}"
+                           class="chk-item-input"
+                           placeholder="Adicionar um item..."
+                           maxlength="240"
+                           th:attr="data-checklist-id=${chk.id}"/>
                     <button type="button" class="btn btn-primario-destaque btn-sm" th:onclick="'window.adicionarItemChecklistModal(document.getElementById(\'input-item-chk-' + ${chk.id} + '\'), ' + ${chk.id} + ')'">Adicionar</button>
                 </div>
             </div>
@@ -353,7 +370,7 @@
                 </div>
 
                 <!-- Histórico de Atividades e Comentários -->
-                <div class="activity-timeline" id="modal-activity-list">
+                <div class="activity-timeline hide-system" id="modal-activity-list">
                     <th:block th:each="act : ${demanda.atividades}">
                         <div class="activity-item" th:classappend="${act.comentario} ? ' is-comment-item' : ' is-system-activity'">
                             <div class="card-assignee-avatar avatar-sm avatar-theme--0">

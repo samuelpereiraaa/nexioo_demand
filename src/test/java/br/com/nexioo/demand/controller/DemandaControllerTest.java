@@ -131,13 +131,14 @@ class DemandaControllerTest {
     @DisplayName("POST /demandas/{id}/toggle-concluido deve alternar conclusão e redirecionar")
     void deveAlternarConclusaoERedirecionar() throws Exception {
         Demanda demanda = demandaFake(1L, "Tarefa para concluir");
-        demanda.setColuna(Coluna.A_FAZER);
-        when(demandaService.buscarPorId(1L)).thenReturn(demanda);
+        demanda.setColuna(Coluna.CONCLUIDO);
+        when(demandaService.alternarConclusao(1L)).thenReturn(demanda);
 
         mockMvc.perform(post("/demandas/1/toggle-concluido"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"));
     }
+
 
     // ── Helper ──────────────────────────────────────────────────────────────
 

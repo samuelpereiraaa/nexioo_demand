@@ -103,7 +103,7 @@ public class DemandaServiceImpl implements DemandaService {
     @Override
     public Demanda atualizarTitulo(Long id, String titulo) {
         Demanda demanda = buscarPorId(id);
-        String tituloSanitizado = sanitizarTexto(titulo);
+        String tituloSanitizado = sanitizarTextoLimitado(titulo, 120);
         if (tituloSanitizado != null && !tituloSanitizado.isBlank() && !tituloSanitizado.equals(demanda.getTitulo())) {
             demanda.setTitulo(tituloSanitizado);
             demanda.setAtualizadoEm(LocalDateTime.now());
@@ -116,7 +116,7 @@ public class DemandaServiceImpl implements DemandaService {
     @Override
     public Demanda atualizarDescricao(Long id, String descricao) {
         Demanda demanda = buscarPorId(id);
-        String descSanitizada = sanitizarTexto(descricao);
+        String descSanitizada = sanitizarTextoLimitado(descricao, 2000);
         demanda.setDescricao(descSanitizada);
         demanda.setAtualizadoEm(LocalDateTime.now());
         demanda.registrarAtividade("Samuel Oliveira", "atualizou a descrição deste cartão");
@@ -134,6 +134,25 @@ public class DemandaServiceImpl implements DemandaService {
             demandaRepository.salvar(demanda);
         }
         return demanda;
+    }
+
+    @Override
+    public Demanda alternarConclusao(Long id) {
+        Demanda demanda = buscarPorId(id);
+        boolean concluida = demanda.getColuna() != null
+                && Coluna.CONCLUIDO.getId().equalsIgnoreCase(demanda.getColuna().getId());
+
+        Coluna destino = concluida
+                ? colunaService.buscarPorId(Coluna.A_FAZER.getId())
+                : colunaService.buscarPorId(Coluna.CONCLUIDO.getId());
+
+        demanda.setColuna(destino);
+        demanda.setAtualizadoEm(LocalDateTime.now());
+        demanda.registrarAtividade(
+                "Samuel Oliveira",
+                concluida ? "reabriu esta demanda" : "concluiu esta demanda"
+        );
+        return demandaRepository.salvar(demanda);
     }
 
     @Override
@@ -197,12 +216,38 @@ public class DemandaServiceImpl implements DemandaService {
     @Override
     public Demanda adicionarChecklist(Long id, String titulo) {
         Demanda demanda = buscarPorId(id);
-        String tituloSanitizado = (titulo != null && !titulo.isBlank()) ? sanitizarTexto(titulo) : "Checklist";
+        String tituloSanitizado = (titulo != null && !titulo.isBlank())
+                ? sanitizarTextoLimitado(titulo, 120)
+                : "Checklist";
         Checklist c = new Checklist(checklistIdGenerator.incrementAndGet(), tituloSanitizado);
         demanda.getChecklists().add(c);
         demanda.setAtualizadoEm(LocalDateTime.now());
         demanda.registrarAtividade("Samuel Oliveira", "adicionou a checklist \"" + tituloSanitizado + "\"");
         return demandaRepository.salvar(demanda);
+    }
+
+    @Override
+    public Demanda renomearChecklist(Long id, Long checklistId, String titulo) {
+        Demanda demanda = buscarPorId(id);
+        String tituloSanitizado = sanitizarTextoLimitado(titulo, 120);
+        if (tituloSanitizado == null || tituloSanitizado.isBlank()) {
+            return demanda;
+        }
+
+        for (Checklist checklist : demanda.getChecklists()) {
+            if (checklist.getId().equals(checklistId)
+                    && !tituloSanitizado.equals(checklist.getTitulo())) {
+                checklist.setTitulo(tituloSanitizado);
+                demanda.setAtualizadoEm(LocalDateTime.now());
+                demanda.registrarAtividade(
+                        "Samuel Oliveira",
+                        "renomeou uma checklist para \"" + tituloSanitizado + "\""
+                );
+                demandaRepository.salvar(demanda);
+                break;
+            }
+        }
+        return demanda;
     }
 
     @Override
@@ -220,7 +265,7 @@ public class DemandaServiceImpl implements DemandaService {
     @Override
     public Demanda adicionarItemChecklist(Long id, Long checklistId, String texto) {
         Demanda demanda = buscarPorId(id);
-        String textoSanitizado = sanitizarTexto(texto);
+        String textoSanitizado = sanitizarTextoLimitado(texto, 240);
         if (textoSanitizado != null && !textoSanitizado.isBlank()) {
             for (Checklist c : demanda.getChecklists()) {
                 if (c.getId().equals(checklistId)) {
@@ -257,12 +302,43 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
+    public Demanda atualizarItemChecklist(Long id, Long checklistId, Long itemId, String texto) {
+        Demanda demanda = buscarPorId(id);
+        String textoSanitizado = sanitizarTextoLimitado(texto, 240);
+        if (textoSanitizado == null || textoSanitizado.isBlank()) {
+            return demanda;
+        }
+
+        for (Checklist checklist : demanda.getChecklists()) {
+            if (!checklist.getId().equals(checklistId)) {
+                continue;
+            }
+            for (ChecklistItem item : checklist.getItens()) {
+                if (item.getId().equals(itemId) && !textoSanitizado.equals(item.getTexto())) {
+                    item.setTexto(textoSanitizado);
+                    demanda.setAtualizadoEm(LocalDateTime.now());
+                    demanda.registrarAtividade(
+                            "Samuel Oliveira",
+                            "atualizou um item da checklist para \"" + textoSanitizado + "\""
+                    );
+                    demandaRepository.salvar(demanda);
+                    return demanda;
+                }
+            }
+        }
+        return demanda;
+    }
+
+    @Override
     public Demanda removerItemChecklist(Long id, Long checklistId, Long itemId) {
         Demanda demanda = buscarPorId(id);
         for (Checklist c : demanda.getChecklists()) {
             if (c.getId().equals(checklistId)) {
-                c.getItens().removeIf(i -> i.getId().equals(itemId));
-                demanda.setAtualizadoEm(LocalDateTime.now());
+                boolean removido = c.getItens().removeIf(i -> i.getId().equals(itemId));
+                if (removido) {
+                    demanda.setAtualizadoEm(LocalDateTime.now());
+                    demanda.registrarAtividade("Samuel Oliveira", "removeu um item da checklist");
+                }
                 break;
             }
         }
@@ -328,13 +404,21 @@ public class DemandaServiceImpl implements DemandaService {
                 .trim();
     }
 
+    private String sanitizarTextoLimitado(String input, int limite) {
+        String texto = sanitizarTexto(input);
+        if (texto == null || texto.length() <= limite) {
+            return texto;
+        }
+        return texto.substring(0, limite);
+    }
+
     private void aplicarForm(Demanda demanda, DemandaForm form) {
-        demanda.setTitulo(sanitizarTexto(form.getTitulo()));
-        demanda.setDescricao(sanitizarTexto(form.getDescricao()));
+        demanda.setTitulo(sanitizarTextoLimitado(form.getTitulo(), 120));
+        demanda.setDescricao(sanitizarTextoLimitado(form.getDescricao(), 2000));
         demanda.setColuna(form.getColuna() != null ? form.getColuna() : colunaService.buscarPadrao());
         demanda.setPrioridade(form.getPrioridade() != null ? form.getPrioridade() : Prioridade.MEDIA);
         String resp = (form.getResponsavel() != null && !form.getResponsavel().isBlank())
-                ? sanitizarTexto(form.getResponsavel())
+                ? sanitizarTextoLimitado(form.getResponsavel(), 80)
                 : null;
         demanda.setResponsavel(resp);
         if (resp != null && !demanda.getMembros().contains(resp)) {

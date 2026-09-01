@@ -71,7 +71,15 @@ public class ColunaServiceImpl implements ColunaService {
         return colunas.get(0);
     }
 
+    @Override
+    public void excluir(String id) {
+        if (id != null && !id.isBlank()) {
+            colunaRepository.excluir(id);
+        }
+    }
+
     private String gerarIdUnico(String nome) {
+
         String base = Normalizer.normalize(nome, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toUpperCase(Locale.ROOT)

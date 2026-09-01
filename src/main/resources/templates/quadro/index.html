@@ -34,19 +34,56 @@
             <div th:replace="~{fragments/coluna :: coluna(${coluna}, ${demandas.get(coluna) != null ? demandas.get(coluna) : {}})}"></div>
         </th:block>
 
-        <!-- Botão "Adicionar outra lista" (visual only, sem funcionalidade por enquanto) -->
-        <div style="flex: 0 0 272px; display: flex; flex-direction: column; align-self: flex-start;">
+        <!-- Adição funcional de uma nova lista -->
+        <div class="add-list-column" id="container-add-lista">
             <button type="button"
-                    style="width:100%; display:flex; align-items:center; gap:10px; padding:14px 18px; background:rgba(255,255,255,0.18); border:none; border-radius:14px; color:#ffffff; font-size:14px; font-weight:600; font-family:inherit; cursor:default; text-align:left; pointer-events:none; white-space:nowrap;"
-                    tabindex="-1"
-                    aria-hidden="true">
+                    id="btn-add-lista-trigger"
+                    class="btn-add-list-trigger"
+                    aria-expanded="false"
+                    aria-controls="form-add-lista"
+                    aria-label="Adicionar outra lista ao quadro">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 <span>Adicionar outra lista</span>
             </button>
+
+            <form id="form-add-lista"
+                  class="add-list-form is-hidden"
+                  method="post"
+                  th:action="@{/colunas}"
+                  th:object="${colunaForm}"
+                  novalidate>
+                <div class="add-list-input-wrapper">
+                    <label class="sr-only" for="input-nome-lista">Nome da nova lista</label>
+                    <input id="input-nome-lista"
+                           class="add-list-input"
+                           type="text"
+                           th:field="*{nome}"
+                           maxlength="50"
+                           autocomplete="off"
+                           placeholder="Digite o nome da lista..."
+                           aria-describedby="add-list-error-msg"
+                           aria-required="true">
+                    <span id="add-list-error-msg" class="add-list-error-msg" role="alert" aria-live="polite"></span>
+                </div>
+                <div class="add-list-actions">
+                    <button type="submit" class="btn-add-list-submit">Adicionar Lista</button>
+                    <button type="button"
+                            id="btn-cancelar-add-lista"
+                            class="btn-add-list-cancel"
+                            aria-label="Cancelar criação da lista"
+                            title="Cancelar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </form>
         </div>
+
 
 
     </div>
@@ -62,14 +99,37 @@
      class="modal-backdrop modal-backdrop-detail"
      role="dialog"
      aria-modal="true"
+     aria-label="Detalhes da demanda"
      aria-hidden="true">
     <div class="modal-dialog modal-dialog-detail" id="modal-detail-dialog-content">
         <!-- Injetado dinamicamente via AJAX -->
     </div>
 </div>
 
+<!-- Modal de Autenticação Supabase -->
+<div th:replace="~{fragments/auth-modal :: authModal}"></div>
+
+
+
 <!-- Script Principal -->
-<script th:src="@{/js/app.js}"></script>
+<script th:src="@{/js/app.js?v=20260901_final}"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 </body>
 </html>

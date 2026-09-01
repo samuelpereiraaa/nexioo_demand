@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<body>
+
+<!-- ── Modal de Autenticação Supabase (Login / Cadastro) ──────────────── -->
+<div th:fragment="authModal" id="modal-auth-supabase" class="modal-backdrop" style="display: none; z-index: 2000;">
+    <div class="modal-dialog" style="max-width: 400px; width: 90%; background: #22272b; border: 1px solid var(--color-border); border-radius: 12px; padding: 24px; color: #b6c2cf;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 id="auth-modal-title" style="font-size: 18px; font-weight: 700; color: #ffffff; margin: 0;">Entrar na sua conta</h2>
+            <button type="button" onclick="window.fecharModalAuth()" style="background: transparent; border: none; color: #b6c2cf; cursor: pointer; font-size: 18px;">✕</button>
+        </div>
+
+        <form id="form-auth-supabase" onsubmit="window.submeterAuthSupabase(event)">
+            
+            <div style="margin-bottom: 16px;">
+                <label for="auth-email" style="display: block; font-size: 13px; font-weight: 600; color: #b6c2cf; margin-bottom: 6px;">E-mail *</label>
+                <input type="email"
+                       id="auth-email"
+                       required
+                       placeholder="seu.email@exemplo.com"
+                       style="width: 100%; padding: 10px 12px; background: #1d2125; border: 1px solid var(--color-border); border-radius: 6px; color: #ffffff; font-size: 14px;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="auth-password" style="display: block; font-size: 13px; font-weight: 600; color: #b6c2cf; margin-bottom: 6px;">Senha *</label>
+                <input type="password"
+                       id="auth-password"
+                       required
+                       placeholder="••••••••"
+                       minlength="6"
+                       style="width: 100%; padding: 10px 12px; background: #1d2125; border: 1px solid var(--color-border); border-radius: 6px; color: #ffffff; font-size: 14px;">
+            </div>
+
+            <input type="hidden" id="auth-mode" value="signin">
+
+            <button type="submit"
+                    id="btn-auth-submit"
+                    style="width: 100%; padding: 10px; background: #579dff; border: none; border-radius: 6px; color: #1d2125; font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 12px;">
+                Entrar
+            </button>
+
+            <div style="text-align: center; font-size: 13px; color: #9fedc7;">
+                <span id="auth-toggle-prompt">Não tem uma conta?</span>
+                <button type="button"
+                        id="auth-toggle-btn"
+                        onclick="window.alternarModoAuth()"
+                        style="background: transparent; border: none; color: #579dff; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; margin-left: 4px;">
+                    Criar conta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    window.abrirModalAuth = function () {
+        var modal = document.getElementById('modal-auth-supabase');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('is-open');
+            var emailInput = document.getElementById('auth-email');
+            if (emailInput) setTimeout(function () { emailInput.focus(); }, 50);
+        }
+    };
+
+    window.fecharModalAuth = function () {
+        var modal = document.getElementById('modal-auth-supabase');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('is-open');
+        }
+    };
+
+    window.alternarModoAuth = function () {
+        var modeInput = document.getElementById('auth-mode');
+        var title = document.getElementById('auth-modal-title');
+        var submitBtn = document.getElementById('btn-auth-submit');
+        var prompt = document.getElementById('auth-toggle-prompt');
+        var toggleBtn = document.getElementById('auth-toggle-btn');
+
+        if (modeInput.value === 'signin') {
+            modeInput.value = 'signup';
+            title.textContent = 'Criar nova conta';
+            submitBtn.textContent = 'Cadastrar';
+            prompt.textContent = 'Já tem uma conta?';
+            toggleBtn.textContent = 'Fazer login';
+        } else {
+            modeInput.value = 'signin';
+            title.textContent = 'Entrar na sua conta';
+            submitBtn.textContent = 'Entrar';
+            prompt.textContent = 'Não tem uma conta?';
+            toggleBtn.textContent = 'Criar conta';
+        }
+    };
+
+    window.submeterAuthSupabase = function (e) {
+        e.preventDefault();
+        var email = document.getElementById('auth-email').value;
+        var password = document.getElementById('auth-password').value;
+        var mode = document.getElementById('auth-mode').value;
+        var submitBtn = document.getElementById('btn-auth-submit');
+
+        if (!email || !password) return;
+        submitBtn.disabled = true;
+
+        var action = (mode === 'signup')
+            ? window.supabaseAuth.signUp(email, password)
+            : window.supabaseAuth.signIn(email, password);
+
+        action.then(function (data) {
+            window.fecharModalAuth();
+            var msg = (mode === 'signup') ? 'Conta criada com sucesso!' : 'Login realizado com sucesso!';
+            if (window.exibirToast) window.exibirToast(msg, 'sucesso');
+        }).catch(function (err) {
+            var errorMsg = err.message || 'Erro na autenticação.';
+            if (window.exibirToast) window.exibirToast(errorMsg, 'erro');
+        }).finally(function () {
+            submitBtn.disabled = false;
+        });
+    };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nexioo Demand — Visão de Projetos e Quadros">
+    <title>Quadros — Nexioo Demand</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="stylesheet" th:href="@{/css/base.css?v=20260901_final}">
+    <link rel="stylesheet" th:href="@{/css/kanban.css?v=20260901_final}">
+    <link rel="stylesheet" th:href="@{/css/projetos.css?v=20260901_final}">
+</head>
+<body class="projetos-page-body">
+
+<!-- ── Barra Superior (Topbar Fiel à Referência) ────────────────────────── -->
+<header class="topbar" role="banner">
+    <div class="topbar-inner">
+        <!-- Lado Esquerdo: Brand + Título + Botão Criar -->
+        <div class="topbar-left">
+            <a th:href="@{/projetos}" class="brand" aria-label="Nexioo Demand">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="4" width="4" height="16" rx="1.5" fill="currentColor"/>
+                        <rect x="10" y="4" width="4" height="11" rx="1.5" fill="currentColor" fill-opacity="0.85"/>
+                        <rect x="17" y="4" width="4" height="6" rx="1.5" fill="currentColor" fill-opacity="0.6"/>
+                    </svg>
+                </span>
+                <span class="brand-text">Trello</span>
+            </a>
+
+            <!-- Botão + Criar Azul na Topbar -->
+            <button type="button" class="btn-topbar-create" onclick="window.abrirModalCriarProjeto()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Criar</span>
+            </button>
+        </div>
+
+        <!-- Lado Direito: Pesquisa + Avatar -->
+        <div class="topbar-right">
+            <div class="search-form" role="search">
+                <div class="search-input-wrapper">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </span>
+                    <input type="search" class="search-input" placeholder="Pesquisar..." autocomplete="off">
+                </div>
+            </div>
+
+            <div class="user-avatar-wrapper" title="Usuário logado: Samuel Oliveira">
+                <div class="user-avatar" aria-label="Perfil do usuário: SP">
+                    <span>SP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ── Mensagens de Alerta Flash ── -->
+<div th:replace="~{fragments/alerts :: alerts}"></div>
+
+<!-- ── Estrutura de Layout: Sidebar Esquerda + Conteúdo Principal ────────── -->
+<div class="projects-layout-container">
+
+    <!-- ── Sidebar Esquerda (Menu Vertical Fiel à Referência) ──────────────── -->
+    <aside class="projects-sidebar">
+        <nav class="projects-sidebar-nav" aria-label="Navegação principal">
+            <!-- Item 1: Quadros (Ativo) -->
+            <a th:href="@{/projetos}" class="sidebar-nav-item is-active">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                </svg>
+                <span>Quadros</span>
+            </a>
+
+            <!-- Item 2: Templates -->
+            <a href="#" class="sidebar-nav-item" onclick="event.preventDefault();">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h6v6"></path>
+                    <path d="M10 14L21 3"></path>
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                </svg>
+                <span>Templates</span>
+            </a>
+
+            <!-- Item 3: Início -->
+            <a href="#" class="sidebar-nav-item" onclick="event.preventDefault();">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                </svg>
+                <span>Início</span>
+            </a>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Seção Áreas de trabalho -->
+            <div class="sidebar-section-title">Áreas de trabalho</div>
+
+            <a th:href="@{/}" class="workspace-menu-item">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="workspace-icon-badge">Á</span>
+                    <span>Área de trabalho do Trello</span>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- ── Conteúdo Principal de Projetos e Quadros ────────────────────────── -->
+    <main class="projects-main-content">
+
+        <!-- ── Seção 1: Visualizado recentemente ───────────────────────────── -->
+        <section aria-labelledby="section-recentes-title">
+            <div class="projects-section-header" id="section-recentes-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Visualizado recentemente</span>
+            </div>
+
+            <div class="projects-grid">
+                <!-- Card de Projeto Recente -->
+                <a th:each="p : ${recentes}"
+                   th:href="@{/}"
+                   class="project-card"
+                   th:style="'background: ' + ${p.gradiente} + ';'">
+                    <h3 class="project-card-title" th:text="${p.nome}">Meu quadro do Trello</h3>
+                    <div class="project-card-footer">
+                        <span class="project-card-meta" th:text="${p.membrosCount} + ' membros'">3 membros</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- ── Seção 2: SUAS ÁREAS DE TRABALHO / MEUS PROJETOS ───────────────── -->
+        <section aria-labelledby="section-workspace-title">
+            <div class="workspace-header-row">
+                <div class="workspace-title-group" id="section-workspace-title">
+                    <span class="workspace-icon-badge" style="width: 32px; height: 32px; font-size: 16px;">Á</span>
+                    <span class="workspace-title-text">Área de trabalho do Trello</span>
+                </div>
+
+                <!-- Abas de Navegação: Quadros | Membros | Configurações -->
+                <div class="workspace-tabs">
+                    <button type="button" class="workspace-tab-btn is-active">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                        </svg>
+                        <span>Quadros</span>
+                    </button>
+                    <button type="button" class="workspace-tab-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Membros</span>
+                    </button>
+                    <button type="button" class="workspace-tab-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Configurações</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid de Cards da Área de Trabalho -->
+            <div class="projects-grid">
+
+                <!-- Card de Projeto da Lista -->
+                <a th:each="p : ${projetos}"
+                   th:href="@{/}"
+                   class="project-card"
+                   th:style="'background: ' + ${p.gradiente} + ';'">
+                    <h3 class="project-card-title" th:text="${p.nome}">Meu quadro do Trello</h3>
+                    <div class="project-card-footer">
+                        <span class="project-card-meta" th:text="${p.membrosCount} + ' membros'">3 membros</span>
+                    </div>
+                </a>
+
+                <!-- Card Ação: Criar Novo Quadro (Borda Tracejada Fiel à Referência) -->
+                <div class="project-card-create" onclick="window.abrirModalCriarProjeto()">
+                    <span class="project-card-create-text">Criar novo quadro</span>
+                </div>
+
+            </div>
+
+            <!-- Link/Botão Rodapé: Ver todos os quadros fechados -->
+            <div style="margin-top: 24px;">
+                <button type="button" class="btn-view-closed-boards">
+                    Ver todos os quadros fechados
+                </button>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- ── Modal de Criação de Novo Projeto ──────────────────────────────────── -->
+<div id="modal-criar-projeto" class="modal-backdrop" style="display: none;">
+    <div class="project-modal-dialog">
+        <h2 class="project-modal-title">Criar novo quadro</h2>
+        <form method="post" th:action="@{/projetos}" th:object="${projetoForm}">
+            
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: #b6c2cf; margin-bottom: 6px;">
+                    Cor de fundo
+                </label>
+                <div class="color-picker-grid">
+                    <div class="color-option is-selected" style="background: linear-gradient(135deg, #a855f7, #ec4899);" data-gradient="linear-gradient(135deg, #a855f7, #ec4899)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #0284c7, #06b6d4);" data-gradient="linear-gradient(135deg, #0284c7, #06b6d4)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #059669, #10b981);" data-gradient="linear-gradient(135deg, #059669, #10b981)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #d97706, #f59e0b);" data-gradient="linear-gradient(135deg, #d97706, #f59e0b)" onclick="window.selecionarGradiente(this)"></div>
+                </div>
+                <input type="hidden" id="input-gradiente" name="gradiente" value="linear-gradient(135deg, #a855f7, #ec4899)">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="nome-projeto" style="display: block; font-size: 13px; font-weight: 600; color: #b6c2cf; margin-bottom: 6px;">
+                    Título do quadro *
+                </label>
+                <input type="text"
+                       id="nome-projeto"
+                       name="nome"
+                       class="form-control"
+                       placeholder="Insira o título do quadro..."
+                       required
+                       style="width: 100%; padding: 8px 12px; background: #1d2125; border: 1px solid var(--border-subtle); border-radius: 6px; color: #ffffff; font-size: 14px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="desc-projeto" style="display: block; font-size: 13px; font-weight: 600; color: #b6c2cf; margin-bottom: 6px;">
+                    Descrição (opcional)
+                </label>
+                <textarea id="desc-projeto"
+                          name="descricao"
+                          rows="2"
+                          class="form-control"
+                          placeholder="Adicione uma breve descrição..."
+                          style="width: 100%; padding: 8px 12px; background: #1d2125; border: 1px solid var(--border-subtle); border-radius: 6px; color: #ffffff; font-size: 14px; resize: vertical;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button type="button"
+                        onclick="window.fecharModalCriarProjeto()"
+                        style="padding: 8px 16px; background: transparent; border: none; color: #b6c2cf; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        style="padding: 8px 16px; background: #579dff; border: none; border-radius: 6px; color: #1d2125; font-size: 14px; font-weight: 700; cursor: pointer;">
+                    Criar quadro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    window.abrirModalCriarProjeto = function() {
+        var modal = document.getElementById('modal-criar-projeto');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('is-open');
+            var input = document.getElementById('nome-projeto');
+            if (input) setTimeout(function() { input.focus(); }, 50);
+        }
+    };
+
+    window.fecharModalCriarProjeto = function() {
+        var modal = document.getElementById('modal-criar-projeto');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('is-open');
+        }
+    };
+
+    window.selecionarGradiente = function(el) {
+        document.querySelectorAll('.color-option').forEach(function(opt) {
+            opt.classList.remove('is-selected');
+        });
+        el.classList.add('is-selected');
+        var grad = el.getAttribute('data-gradient');
+        var input = document.getElementById('input-gradiente');
+        if (input) input.value = grad;
+    };
+</script>
+
+<!-- Modal de Autenticação Supabase -->
+<div th:replace="~{fragments/auth-modal :: authModal}"></div>
+
+</body>
+</html>
+

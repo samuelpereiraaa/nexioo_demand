@@ -17,4 +17,7 @@ public interface ColunaService {
     Coluna criar(ColunaForm form);
 
     Coluna buscarPadrao();
+
+    void excluir(String id);
 }
+

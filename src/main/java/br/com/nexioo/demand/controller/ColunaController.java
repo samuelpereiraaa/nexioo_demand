@@ -16,8 +16,10 @@ import javax.validation.Valid;
  * Controller responsável pelo gerenciamento de colunas/listas.
  */
 @Controller
+@org.springframework.web.bind.annotation.CrossOrigin(origins = "*")
 @RequestMapping("/colunas")
 public class ColunaController {
+
 
     private final ColunaService colunaService;
 
@@ -46,4 +48,18 @@ public class ColunaController {
             return "redirect:/";
         }
     }
+
+    @PostMapping("/{id}/excluir")
+    public String excluir(
+            @org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
+            RedirectAttributes redirectAttributes) {
+        colunaService.excluir(id);
+        if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+            return "fragments/cartao :: cartao-vazio";
+        }
+        redirectAttributes.addFlashAttribute("mensagemSucesso", "Lista excluída com sucesso.");
+        return "redirect:/";
+    }
 }
+

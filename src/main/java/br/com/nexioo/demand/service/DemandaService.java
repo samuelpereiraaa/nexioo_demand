@@ -32,6 +32,8 @@ public interface DemandaService {
 
     Demanda alterarColuna(Long id, Coluna novaColuna);
 
+    Demanda alternarConclusao(Long id);
+
     Demanda adicionarComentario(Long id, String texto, String autor);
 
     Demanda adicionarEtiqueta(Long id, String nome, String corHex);
@@ -42,11 +44,15 @@ public interface DemandaService {
 
     Demanda adicionarChecklist(Long id, String titulo);
 
+    Demanda renomearChecklist(Long id, Long checklistId, String titulo);
+
     Demanda removerChecklist(Long id, Long checklistId);
 
     Demanda adicionarItemChecklist(Long id, Long checklistId, String texto);
 
     Demanda toggleItemChecklist(Long id, Long checklistId, Long itemId);
+
+    Demanda atualizarItemChecklist(Long id, Long checklistId, Long itemId, String texto);
 
     Demanda removerItemChecklist(Long id, Long checklistId, Long itemId);
 

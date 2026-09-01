@@ -1,0 +1,286 @@
+/* ── Auth Page Stylesheet — Login e Signup (Fidelidade Fiel ao Design) ── */
+
+:root {
+    --auth-bg: #050608;
+    --auth-card-bg: #16181c;
+    --auth-input-bg: #0d0e11;
+    --auth-border: rgba(255, 255, 255, 0.1);
+    --auth-blue: #2563eb;
+    --auth-blue-hover: #1d4ed8;
+    --auth-text: #ffffff;
+    --auth-text-muted: #8b949e;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body.auth-page-body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--auth-bg);
+    color: var(--auth-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* ── Grafismos de Nós de Circuitos nos 4 Cantos (Conforme Imagem) ── */
+.circuit-node {
+    position: fixed;
+    width: 240px;
+    height: 180px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.7;
+}
+
+.circuit-node-tl {
+    top: 30px;
+    left: 30px;
+}
+
+.circuit-node-tr {
+    top: 30px;
+    right: 30px;
+}
+
+.circuit-node-bl {
+    bottom: 30px;
+    left: 30px;
+}
+
+.circuit-node-br {
+    bottom: 30px;
+    right: 30px;
+}
+
+/* ── Container Central do Card ── */
+.auth-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+}
+
+.auth-card {
+    background: var(--auth-card-bg);
+    border: 1px solid var(--auth-border);
+    border-radius: 20px;
+    padding: 36px 32px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Logo Spinner Circular */
+.auth-logo-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: #1e2228;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.auth-logo-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top: 3px solid #38bdf8;
+    border-right: 3px solid #38bdf8;
+    border-radius: 50%;
+    animation: auth-spin 1.8s linear infinite;
+}
+
+@keyframes auth-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Título e Subtítulo */
+.auth-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--auth-text);
+    margin: 0 0 8px 0;
+    text-align: center;
+    letter-spacing: -0.3px;
+}
+
+.auth-subtitle {
+    font-size: 13.5px;
+    color: var(--auth-text-muted);
+    margin: 0 0 28px 0;
+    text-align: center;
+}
+
+.auth-subtitle a {
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 3px;
+}
+
+.auth-subtitle a:hover {
+    text-decoration: underline;
+}
+
+/* Formulário e Entradas */
+.auth-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.input-group-icon {
+    position: relative;
+    width: 100%;
+}
+
+.input-group-icon .input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--auth-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.input-group-icon input {
+    width: 100%;
+    height: 48px;
+    background: var(--auth-input-bg);
+    border: 1px solid var(--auth-border);
+    border-radius: 10px;
+    padding: 0 16px 0 44px;
+    color: var(--auth-text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input-group-icon input:focus {
+    border-color: var(--auth-blue);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.input-group-icon input::placeholder {
+    color: #6e7681;
+}
+
+.input-group-icon input:-webkit-autofill,
+.input-group-icon input:-webkit-autofill:hover,
+.input-group-icon input:-webkit-autofill:focus,
+.input-group-icon input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0d0e11 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+
+/* Botão Submit Principal */
+.btn-auth-submit {
+    width: 100%;
+    height: 48px;
+    background: var(--auth-blue);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 150ms ease, transform 150ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-auth-submit:hover {
+    background: var(--auth-blue-hover);
+}
+
+.btn-auth-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Divisor OR */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 24px 0;
+    color: #6e7681;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--auth-border);
+}
+
+.auth-divider span {
+    padding: 0 12px;
+}
+
+/* Botões Sociais */
+.social-buttons-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+}
+
+.btn-social {
+    height: 44px;
+    background: #21262d;
+    border: 1px solid var(--auth-border);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #ffffff;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.btn-social:hover {
+    background: #30363d;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Mensagens de Alerta */
+.auth-error-alert {
+    width: 100%;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fca5a5;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+}

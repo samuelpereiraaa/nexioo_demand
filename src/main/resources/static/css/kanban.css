@@ -274,11 +274,84 @@
     color: var(--color-text-muted);
 }
 
-/* ── Rodapé da Coluna: Botão + Adicionar Demanda ── */
+/* ── Rodapé da Coluna: Botão "Adicionar um cartão" ── */
 .column-footer {
-    padding: 4px 10px 10px;
-    border-top: 1px solid var(--color-border-subtle);
+    padding: 2px 8px 10px;
     flex-shrink: 0;
+}
+
+.btn-add-card {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-add-card:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+}
+
+.btn-add-card:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.btn-add-icon-svg {
+    flex-shrink: 0;
+}
+
+
+.column-options-wrapper {
+    position: relative;
+}
+
+.column-options-menu {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 174px;
+    padding: 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-elevated);
+    box-shadow: var(--shadow-lg);
+}
+
+.column-options-menu.is-hidden {
+    display: none;
+}
+
+.column-options-menu button {
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.column-options-menu button:hover,
+.column-options-menu button:focus-visible {
+    outline: none;
+    color: var(--color-text);
+    background: var(--color-surface-hover);
 }
 
 .btn-add-card {
@@ -312,386 +385,555 @@
 }
 
 /* ==========================================================================
-   SEÇÕES INTERATIVAS (<section>) — Cartões com Transições, Expansão e Controles
+   CARTÕES DE DEMANDA — Layout Compacto Horizontal
+   Controles revelados no hover/foco. Borda ciano no foco (Imagem 3).
    ========================================================================== */
 
+/* ── Cartão base ── */
 .kanban-card {
-    background: var(--color-surface-elevated);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    cursor: pointer;
     position: relative;
-    /* Transições coordenadas e fluidas */
-    transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1),
-                box-shadow 300ms cubic-bezier(0.25, 1, 0.5, 1),
-                opacity 240ms ease,
-                filter 240ms ease,
-                background-color 200ms ease,
-                border-color 200ms ease;
-    will-change: transform, box-shadow;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px 10px 0;
+    background: var(--color-surface-elevated);
+    border: 1.5px solid var(--color-border-subtle);
+    border-radius: 10px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    outline: none;
 }
 
-/* ── Estado Ativo: Hover, Expansão e Foco ── */
-.kanban-card:hover,
-.kanban-card.is-expanded,
-.kanban-card:focus-within {
-    opacity: 1 !important;
-    filter: none !important;
+/* ── Hover: sutil ── */
+.kanban-card:hover {
     background: var(--color-surface-hover);
     border-color: var(--color-border);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-    z-index: 10;
 }
 
-.kanban-card:focus-visible {
-    outline: none;
-    border-color: var(--color-border);
-    box-shadow: var(--shadow-md);
+/* ── Foco / Seleção do card: borda azul brilhante — Imagem 2 ── */
+.kanban-card:focus-visible,
+.kanban-card:focus,
+.kanban-card.is-selected {
+    border-color: #00A3FF;
+    box-shadow: 0 0 0 2px #00A3FF;
+    background: var(--color-surface-hover);
 }
 
-/* ── Faixa Superior Colorida Conforme a Prioridade ── */
-.card-priority-strip {
-    height: 2.5px;
-    width: 100%;
-    transition: height 200ms ease;
+
+
+/* ── Demanda concluída ── */
+.card--completed {
+    opacity: 0.65;
 }
 
-.kanban-card:hover .card-priority-strip,
-.kanban-card.is-expanded .card-priority-strip,
-.kanban-card:focus-within .card-priority-strip {
-    height: 3px;
+.card--completed .card-title {
+    text-decoration: line-through;
+    color: var(--color-text-secondary);
 }
 
-.priority-strip--baixa   { background: var(--prioridade-baixa-solid); }
-.priority-strip--media   { background: var(--prioridade-media-solid); }
-.priority-strip--alta    { background: var(--prioridade-alta-solid); }
-
-.card-inner {
-    padding: 11px 12px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+/* ── Indicador de prioridade: borda esquerda colorida ── */
+.card-priority-indicator {
+    flex-shrink: 0;
+    width: 3px;
+    min-height: 32px;
+    align-self: stretch;
+    border-radius: 0 2px 2px 0;
 }
 
-/* ── Linha Superior: Check de Conclusão, Tag de Prioridade e Edição ── */
-.card-header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
+.priority-indicator--baixa { background: var(--prioridade-baixa-solid); }
+.priority-indicator--media { background: var(--prioridade-media-solid); }
+.priority-indicator--alta  { background: var(--prioridade-alta-solid);  }
 
-.card-header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Formulário e Botão de Conclusão Circular */
+/* ── Controle circular de conclusão: marcar (◯) e desmarcar (✔) ── */
 .card-complete-form {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .btn-card-complete {
     background: transparent;
     border: none;
-    padding: 0;
+    padding: 2px 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--color-text-muted);
-    transition: color var(--transition-fast), transform var(--transition-fast);
+    color: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transition: color 150ms ease, transform 150ms ease;
 }
 
-.btn-card-complete:hover {
-    color: var(--color-accent);
-    transform: scale(1.15);
+.btn-card-complete:hover,
+.btn-card-complete:focus,
+.btn-card-complete:focus-visible {
+    color: #70B538;
+    transform: scale(1.12);
+    outline: none;
 }
 
-.btn-card-complete .icon-circle-completed {
-    display: none;
+.btn-card-complete:focus-visible .icon-circle-uncompleted,
+.btn-card-complete:focus .icon-circle-uncompleted {
+    stroke: #70B538;
 }
 
-.btn-card-complete.is-completed .icon-circle-uncompleted {
-    display: none;
-}
+.btn-card-complete .icon-circle-completed { display: none; }
+.btn-card-complete.is-completed .icon-circle-uncompleted { display: none; }
+.btn-card-complete.is-completed .icon-circle-completed { display: block; }
 
-.btn-card-complete.is-completed .icon-circle-completed {
-    display: block;
-    color: var(--color-accent);
-}
 
-/* Tag Textual de Prioridade */
-.priority-tag {
-    display: inline-flex;
-    align-items: center;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: var(--radius-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border: 1px solid transparent;
-    transition: all var(--transition-fast);
-}
 
-.tag--baixa   { background: var(--prioridade-baixa-bg);   color: var(--prioridade-baixa-txt);   border-color: var(--prioridade-baixa-border); }
-.tag--media   { background: var(--prioridade-media-bg);   color: var(--prioridade-media-txt);   border-color: var(--prioridade-media-border); }
-.tag--alta    { background: var(--prioridade-alta-bg);    color: var(--prioridade-alta-txt);    border-color: var(--prioridade-alta-border); }
-
-/* Ações Rápidas (Botão de Edição) */
-.card-quick-actions {
+/* ── Corpo do cartão: título + metadados ── */
+.card-body {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    align-items: center;
-    opacity: 0.5;
-    transition: opacity var(--transition-fast);
+    flex-direction: column;
+    gap: 5px;
 }
 
-.kanban-card:hover .card-quick-actions,
-.kanban-card.is-expanded .card-quick-actions,
-.kanban-card:focus-within .card-quick-actions {
-    opacity: 1;
-}
-
-.btn-card-action {
-    color: var(--color-text-muted);
-    padding: 3px;
-    border-radius: var(--radius-xs);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    transition: all var(--transition-fast);
-}
-
-.btn-card-action:hover {
-    color: var(--color-accent);
-    background: var(--color-surface);
-}
-
-/* ── Título da Demanda ── */
 .card-title {
     font-size: 13.5px;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.4;
     color: var(--color-text);
     word-break: break-word;
-    transition: color var(--transition-fast);
+    margin: 0;
 }
 
-.card-title-link {
-    color: inherit;
-    display: block;
-}
-
-.kanban-card:hover .card-title-link,
-.kanban-card.is-expanded .card-title-link {
-    color: #ffffff;
-}
-
-/* Demanda concluída com atenuação sutil */
-.card--completed .card-title {
-    color: var(--color-text-secondary);
-}
-
-/* ── Conteúdo Expandido Revelado no Hover / Foco ── */
-.card-expandable-content {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transform: translateY(-3px);
-    transition: max-height 300ms cubic-bezier(0.25, 1, 0.5, 1),
-                opacity 240ms ease-out,
-                transform 240ms ease-out,
-                margin-top 240ms ease-out;
-}
-
-.kanban-card:hover .card-expandable-content,
-.kanban-card.is-expanded .card-expandable-content,
-.kanban-card:focus-within .card-expandable-content {
-    max-height: 160px;
-    opacity: 1;
-    transform: translateY(0);
-    margin-top: 4px;
-}
-
-.card-desc {
-    font-size: 11.5px;
-    color: var(--color-text-secondary);
-    line-height: 1.45;
-    word-break: break-word;
-    background: rgba(8, 10, 9, 0.45);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-xs);
-    padding: 7px 9px;
-}
-
-/* ── Rodapé do Cartão: Prazo, Seletor de Status e Avatar ── */
-.card-footer {
+/* ── Metadados compactos (prazo, checklist, etiquetas, avatar) ── */
+.card-meta-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 2px;
-    padding-top: 6px;
-    border-top: 1px solid var(--color-border-subtle);
-    transition: border-color var(--transition-fast);
-}
-
-.kanban-card:hover .card-footer,
-.kanban-card.is-expanded .card-footer {
-    border-top-color: rgba(255, 255, 255, 0.08);
-}
-
-.card-meta-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     flex-wrap: wrap;
+    gap: 5px;
 }
 
-/* Prazo com Ícone de Relógio */
-.card-due-date {
+.card-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 11px;
+    gap: 3px;
+    font-size: 10.5px;
     font-family: var(--font-mono);
+    border-radius: var(--radius-xs);
+    padding: 1px 5px;
+}
+
+.card-badge--date {
     color: var(--color-text-muted);
-    transition: color var(--transition-fast);
 }
 
-.kanban-card:hover .card-due-date,
-.kanban-card.is-expanded .card-due-date {
-    color: var(--color-text-secondary);
-}
-
-/* Prazo Vencido com destaque discreto */
-.due-date--expired {
-    color: var(--prioridade-alta-txt) !important;
+.card-badge--date.card-badge--expired {
+    color: var(--prioridade-alta-txt);
     font-weight: 600;
 }
 
-.due-date--expired svg {
-    color: var(--prioridade-alta-txt);
+.card-badge--checklist {
+    color: var(--color-text-muted);
 }
 
-/* Seletor Rápido de Mudança de Status */
-.card-move-form {
-    display: flex;
-    align-items: center;
-}
-
-.card-move-select {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-subtle);
-    color: var(--color-text-secondary);
-    font-size: 11px;
-    border-radius: var(--radius-xs);
-    padding: 2px 14px 2px 5px;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23747D77' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 4px center;
-    max-width: 95px;
-    transition: all var(--transition-fast);
-}
-
-.card-move-select:hover {
-    border-color: var(--color-accent);
-    color: var(--color-text);
-}
-
-/* Avatar do Responsável */
-.card-assignee-avatar {
-    width: 22px;
-    height: 22px;
-    border-radius: var(--radius-full);
+.card-mini-tag {
     font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+    border: 1px solid currentColor;
+    line-height: 1.2;
+}
+
+.card-assignee-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-full);
+    font-size: 8px;
     font-weight: 700;
     font-family: var(--font-mono);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform var(--transition-fast);
 }
 
-.kanban-card:hover .card-assignee-avatar,
-.kanban-card.is-expanded .card-assignee-avatar {
+/* ── Grupo de botões de ação rápida no hover do cartão (Imagens 1 e 3) ── */
+.card-actions-quick-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+    flex-shrink: 0;
+}
+
+.kanban-card:hover .card-actions-quick-group,
+.kanban-card:focus .card-actions-quick-group,
+.kanban-card:focus-visible .card-actions-quick-group,
+.kanban-card:focus-within .card-actions-quick-group,
+.kanban-card.is-selected .card-actions-quick-group {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+
+.btn-card-action-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.btn-card-action-circle:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
     transform: scale(1.08);
 }
 
-/* ── Fallback e Otimização para Dispositivos sem Hover (Touch / Mobile) ── */
-@media (hover: none) {
-    .column-cards-list:hover .kanban-card:not(:hover) {
-        opacity: 1;
-        transform: none;
-        filter: none;
-    }
-
-    .kanban-card.is-expanded .card-expandable-content {
-        max-height: 140px;
-        opacity: 1;
-        transform: translateY(0);
-        margin-top: 4px;
-    }
-
-    .card-quick-actions {
-        opacity: 0.85;
-    }
+/* ── Editor Rápido Inline do Título (Imagens 2 e 3) ── */
+.kanban-card.is-quick-editing {
+    background: #1E1F23;
+    border-color: #5B9BD5;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px;
 }
 
-/* ── Prefers Reduced Motion ── */
+.kanban-card.is-quick-editing .card-body,
+.kanban-card.is-quick-editing .card-complete-form,
+.kanban-card.is-quick-editing .card-actions-quick-group,
+.kanban-card.is-quick-editing .card-priority-indicator {
+    display: none !important;
+}
+
+.card-quick-edit-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.card-quick-edit-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    color: #ffffff;
+    background: #141418;
+    border: 2px solid #5B9BD5;
+    border-radius: 8px;
+    resize: none;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+.card-quick-edit-input:focus {
+    outline: none;
+    border-color: #5B9BD5;
+}
+
+.card-quick-edit-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-quick-edit-save {
+    padding: 8px 16px;
+    background: #5B9BD5;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 150ms ease;
+}
+
+.btn-quick-edit-save:hover {
+    background: #4A8AC4;
+}
+
+.btn-quick-edit-open-modal {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: background 150ms ease;
+}
+
+.btn-quick-edit-open-modal:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+
+/* ── Dimming sutil de cards vizinhos ── */
+.column-cards-list:hover .kanban-card:not(:hover):not(:focus-within) {
+    opacity: 0.75;
+}
+
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
     .kanban-card,
-    .card-priority-strip,
-    .card-expandable-content,
-    .column-cards-list:hover .kanban-card:not(:hover) {
+    .card-complete-form,
+    .btn-edit-quick {
         transition: none !important;
-        transform: none !important;
     }
 }
 
-/* ── Responsividade Geral do Quadro ── */
+/* ── Touch: sempre mostrar controles ── */
+@media (hover: none) {
+    .card-complete-form,
+    .btn-edit-quick {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .column-cards-list:hover .kanban-card:not(:hover):not(:focus-within) {
+        opacity: 1;
+    }
+}
+
+/* ==========================================================================
+   COMPOSITOR INLINE DE NOVO CARTÃO — Imagens 1 e 2
+   ========================================================================== */
+
+/* ── Rodapé da coluna ── */
+.column-footer {
+    padding: 2px 8px 10px;
+    flex-shrink: 0;
+}
+
+/* Por padrão: compositor oculto */
+.column-footer .card-composer {
+    display: none;
+}
+
+/* Quando a coluna tem o compositor aberto: esconde trigger, mostra compositor */
+.kanban-column.composer-open .card-composer-trigger {
+    display: none;
+}
+.kanban-column.composer-open .card-composer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ── Botão "Adicionar um cartão" — Imagem 1 ── */
+.btn-add-card {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-add-card:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+}
+
+.btn-add-card:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.btn-add-card-template-icon {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    opacity: 0.7;
+    transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-add-card:hover .btn-add-card-template-icon {
+    opacity: 1;
+    color: var(--color-text-secondary);
+}
+
+
+/* ── Textarea do compositor — Imagem 2 ── */
+.card-composer-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 400;
+    font-family: inherit;
+    color: var(--color-text);
+    background: #141418;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    resize: none;
+    line-height: 1.5;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+    box-sizing: border-box;
+}
+
+.card-composer-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 14px;
+}
+
+.card-composer-input:focus {
+    outline: none;
+    border-color: #00E6A8;
+    box-shadow: 0 0 0 2px rgba(0, 230, 168, 0.35);
+}
+
+.card-composer-input.has-error {
+    border-color: var(--color-danger);
+}
+
+/* Mensagem de validação */
+.card-composer-error {
+    font-size: 11.5px;
+    color: var(--color-danger);
+    font-weight: 500;
+    min-height: 0;
+    display: none;
+}
+
+.card-composer-error.is-visible {
+    display: block;
+}
+
+/* ── Linha de ações — Imagem 2 ── */
+.card-composer-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Botão "Adicionar Cartão" — azul ── */
+.btn-compositor-submit {
+    padding: 9px 16px;
+    background: #5B9BD5;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--transition-fast);
+}
+
+.btn-compositor-submit:hover {
+    background: #4A8AC4;
+}
+
+.btn-compositor-submit:focus-visible {
+    outline: 2px solid #5B9BD5;
+    outline-offset: 2px;
+}
+
+/* Botão "Dica" — roxo — Imagem 2 ── */
+.btn-compositor-hint {
+    padding: 8px 14px;
+    background: #4A2E65;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: background var(--transition-fast);
+}
+
+.btn-compositor-hint:hover {
+    background: #5B387C;
+}
+
+.btn-compositor-hint:focus-visible {
+    outline: 2px solid #4A2E65;
+    outline-offset: 2px;
+}
+
+
+/* Botão X de cancelar */
+.btn-compositor-cancel {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.45);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-compositor-cancel:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-compositor-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.4);
+    outline-offset: 2px;
+}
+
+/* ── Animação de entrada do card inserido ── */
+@keyframes cardEntrada {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.kanban-card.card--inserido {
+    animation: cardEntrada 200ms ease-out;
+}
+
+/* ── Responsividade ── */
 @media (max-width: 900px) {
-    .topbar-inner {
-        padding: 0 var(--space-md);
-    }
-    .board-title-badge {
-        display: none;
-    }
-    .search-input {
-        width: 140px;
-    }
-    .search-input:focus {
-        width: 180px;
-    }
+    .topbar-inner { padding: 0 var(--space-md); }
+    .board-title-badge { display: none; }
+    .search-input { width: 140px; }
+    .search-input:focus { width: 180px; }
 }
 
 @media (max-width: 600px) {
-    .topbar-inner {
-        padding: 0 12px;
-        gap: 8px;
-    }
-    .search-input-wrapper {
-        display: none;
-    }
-    .board-columns-track {
-        padding: 12px 14px;
-        gap: 12px;
-    }
-    .kanban-column,
-    .add-list-column {
-        flex: 0 0 264px;
-    }
+    .topbar-inner { padding: 0 12px; gap: 8px; }
+    .search-input-wrapper { display: none; }
+    .board-columns-track { padding: 12px 14px; gap: 12px; }
+    .kanban-column, .add-list-column { flex: 0 0 264px; }
 }
 
 /* ==========================================================================
@@ -1172,23 +1414,33 @@ body.modal-open {
 }
 
 
-/* ── Container para Adição de Nova Lista (+ Adicionar outra lista) ── */
+/* ── Container para Adição de Nova Lista ── */
 .add-list-column {
     flex: 0 0 272px;
     display: flex;
     flex-direction: column;
     align-self: flex-start;
-    padding-top: 0;
 }
 
+/* Estado: botão oculto via classe (sem inline style) */
+.add-list-column.form-open .btn-add-list-trigger {
+    display: none;
+}
+
+/* Estado: formulário oculto por padrão */
+.add-list-column:not(.form-open) .add-list-form {
+    display: none;
+}
+
+/* ── Botão "Adicionar outra lista" — Design Translucido Dark (Imagem de Referência) ── */
 .btn-add-list-trigger {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.20);
-    border: none;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
     color: #ffffff;
     font-size: 14px;
@@ -1198,57 +1450,33 @@ body.modal-open {
     text-align: left;
     letter-spacing: 0.01em;
     white-space: nowrap;
-    transition: background var(--transition-fast);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.btn-add-list-trigger:hover,
-.btn-add-list-trigger:focus-visible {
-    background: rgba(255, 255, 255, 0.30);
+.btn-add-list-trigger:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.12);
 }
 
 .btn-add-list-trigger:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 2px;
-}
-
-.btn-add-list-trigger:disabled,
-.btn-add-list-trigger[disabled] {
-    opacity: 1;
-    cursor: default;
-    pointer-events: none;
+    background: rgba(255, 255, 255, 0.22);
 }
 
 
-.btn-add-list-icon {
-    display: flex;
-    align-items: center;
-    color: var(--color-accent);
-    transition: transform var(--transition-fast);
-}
-
-.btn-add-list-trigger:hover .btn-add-list-icon {
-    transform: scale(1.15);
-}
-
-/* ── Formulário Inline de Adição de Lista ── */
+/* ── Formulário Inline — Imagem 2 ── */
 .add-list-form {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: #1A1A2E;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    box-shadow: var(--shadow-md);
-    transition: border-color var(--transition-fast);
-}
-
-.add-list-form:focus-within {
-    border-color: rgba(0, 230, 168, 0.4);
-}
-
-.add-list-form.is-hidden {
-    display: none !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
 .add-list-input-wrapper {
@@ -1257,39 +1485,37 @@ body.modal-open {
     gap: 4px;
 }
 
+/* Campo de texto — Imagem 2: fundo escuro, borda azul no foco */
 .add-list-input {
     width: 100%;
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 500;
     font-family: inherit;
     color: var(--color-text);
-    background: var(--color-surface-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    background: #0D0D1A;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    box-sizing: border-box;
 }
 
 .add-list-input::placeholder {
-    color: var(--color-text-muted);
-}
-
-.add-list-input:hover {
-    border-color: var(--color-text-muted);
-    background: var(--color-surface-hover);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
 }
 
 .add-list-input:focus {
     outline: none;
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 1px var(--color-accent);
-    background: var(--color-surface-hover);
+    border-color: #5B9BD5;
+    box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.35);
 }
 
 .add-list-input.has-error {
-    border-color: var(--color-danger) !important;
-    background-color: var(--color-danger-soft) !important;
+    border-color: var(--color-danger);
 }
 
+/* Mensagem de erro acessível */
 .add-list-error-msg {
     font-size: 11.5px;
     color: var(--color-danger);
@@ -1303,33 +1529,64 @@ body.modal-open {
     display: flex;
 }
 
+/* Linha de ações */
 .add-list-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 12.5px;
+/* Botão "Adicionar Lista" — azul conforme Imagem 2 */
+.btn-add-list-submit {
+    padding: 9px 16px;
+    background: #5B9BD5;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    white-space: nowrap;
 }
 
+.btn-add-list-submit:hover {
+    background: #4A8AC4;
+}
+
+.btn-add-list-submit:focus-visible {
+    outline: 2px solid #5B9BD5;
+    outline-offset: 2px;
+}
+
+/* Botão "X" de cancelar */
 .btn-add-list-cancel {
-    color: var(--color-text-muted);
-    width: 30px;
-    height: 30px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    width: 32px;
+    height: 32px;
     border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    transition: color var(--transition-fast), background var(--transition-fast);
 }
 
 .btn-add-list-cancel:hover {
-    color: var(--color-text);
-    background: var(--color-surface-hover);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
 }
+
+.btn-add-list-cancel:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+
 
 /* ==========================================================================
    ELEMENTOS INTERATIVOS ADICIONAIS DO MODAL & CARTOES
@@ -1570,6 +1827,32 @@ body.modal-open {
     margin-top: 10px;
 }
 
+.checklist-title-input,
+.chk-item-edit-input {
+    min-width: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+}
+
+.checklist-title-input {
+    width: min(360px, 58vw);
+    padding: 4px 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.checklist-title-input:hover,
+.checklist-title-input:focus,
+.chk-item-edit-input:hover,
+.chk-item-edit-input:focus {
+    outline: none;
+    border-color: var(--color-border);
+    background: var(--color-surface-hover);
+}
+
 .checklist-progress-wrapper {
     display: flex;
     align-items: center;
@@ -1625,6 +1908,11 @@ body.modal-open {
     flex: 1;
 }
 
+.chk-item-edit-input {
+    width: 100%;
+    padding: 5px 7px;
+}
+
 .chk-item-text.is-done {
     text-decoration: line-through;
     color: var(--color-text-muted);
@@ -1675,5 +1963,4 @@ body.modal-open {
 .activity-timeline.hide-system .is-system-activity {
     display: none !important;
 }
-
 
