@@ -31,23 +31,38 @@ public class ColunaController {
     public String criar(
             @Valid @ModelAttribute("colunaForm") ColunaForm form,
             BindingResult bindingResult,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
+            org.springframework.ui.Model model,
             RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors() || form.getNome() == null || form.getNome().isBlank()) {
+            if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+                return "fragments/coluna :: coluna-vazio";
+            }
             redirectAttributes.addFlashAttribute("mensagemErro", "O nome da lista é obrigatório.");
-            return "redirect:/";
+            return "redirect:/quadro";
         }
 
         try {
             Coluna novaColuna = colunaService.criar(form);
+            if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+                model.addAttribute("coluna", novaColuna);
+                model.addAttribute("listaDemandas", java.util.Collections.emptyList());
+                return "fragments/coluna :: coluna";
+            }
+
             redirectAttributes.addFlashAttribute("mensagemSucesso",
                     "Lista \"" + novaColuna.getDescricao() + "\" criada com sucesso.");
-            return "redirect:/?novaColunaId=" + novaColuna.getId() + "#coluna-" + novaColuna.getId().toLowerCase();
+            return "redirect:/quadro?novaColunaId=" + novaColuna.getId() + "#coluna-" + novaColuna.getId().toLowerCase();
         } catch (IllegalArgumentException e) {
+            if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+                return "fragments/coluna :: coluna-vazio";
+            }
             redirectAttributes.addFlashAttribute("mensagemErro", e.getMessage());
-            return "redirect:/";
+            return "redirect:/quadro";
         }
     }
+
 
     @PostMapping("/{id}/excluir")
     public String excluir(
@@ -59,7 +74,8 @@ public class ColunaController {
             return "fragments/cartao :: cartao-vazio";
         }
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Lista excluída com sucesso.");
-        return "redirect:/";
+        return "redirect:/quadro";
     }
+
 }
 

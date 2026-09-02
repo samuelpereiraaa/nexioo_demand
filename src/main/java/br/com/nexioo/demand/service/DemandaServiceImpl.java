@@ -138,22 +138,39 @@ public class DemandaServiceImpl implements DemandaService {
 
     @Override
     public Demanda alternarConclusao(Long id) {
+
         Demanda demanda = buscarPorId(id);
-        boolean concluida = demanda.getColuna() != null
-                && Coluna.CONCLUIDO.getId().equalsIgnoreCase(demanda.getColuna().getId());
-
-        Coluna destino = concluida
-                ? colunaService.buscarPorId(Coluna.A_FAZER.getId())
-                : colunaService.buscarPorId(Coluna.CONCLUIDO.getId());
-
-        demanda.setColuna(destino);
+        boolean novoEstado = !demanda.isConcluido();
+        demanda.setConcluido(novoEstado);
         demanda.setAtualizadoEm(LocalDateTime.now());
         demanda.registrarAtividade(
                 "Samuel Oliveira",
-                concluida ? "reabriu esta demanda" : "concluiu esta demanda"
+                novoEstado ? "concluiu esta demanda" : "reabriu esta demanda"
         );
         return demandaRepository.salvar(demanda);
     }
+
+    @Override
+    public Demanda adicionarImagem(Long id, String imagemUrl) {
+        Demanda demanda = buscarPorId(id);
+        if (imagemUrl != null && !imagemUrl.isBlank()) {
+            demanda.setImagemUrl(imagemUrl.trim());
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            demanda.registrarAtividade("Samuel Oliveira", "anexou uma imagem à demanda");
+            demandaRepository.salvar(demanda);
+        }
+        return demanda;
+    }
+
+    @Override
+    public Demanda removerImagem(Long id) {
+        Demanda demanda = buscarPorId(id);
+        demanda.setImagemUrl(null);
+        demanda.setAtualizadoEm(LocalDateTime.now());
+        demanda.registrarAtividade("Samuel Oliveira", "removeu a imagem da demanda");
+        return demandaRepository.salvar(demanda);
+    }
+
 
     @Override
     public Demanda adicionarComentario(Long id, String texto, String autor) {

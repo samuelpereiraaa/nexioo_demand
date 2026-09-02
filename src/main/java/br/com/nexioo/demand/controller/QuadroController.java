@@ -31,12 +31,18 @@ public class QuadroController {
         this.colunaService = colunaService;
     }
 
-    @GetMapping({"/", "/quadro"})
+    @GetMapping("/")
+    public String raiz() {
+        return "redirect:/login";
+    }
+
+    @GetMapping("/quadro")
     public String quadro(
             @RequestParam(required = false) String termo,
             @RequestParam(required = false) Prioridade prioridade,
             @RequestParam(required = false) String responsavel,
             Model model) {
+
 
         boolean temFiltro = temFiltroAtivo(termo, prioridade, responsavel);
         Map<Coluna, List<Demanda>> demandas = temFiltro

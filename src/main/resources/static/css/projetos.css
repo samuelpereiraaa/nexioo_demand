@@ -147,81 +147,70 @@ body.projetos-page-body {
 
 /* ── Grid de Cards de Projeto ── */
 .projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 16px;
 }
 
-/* Card de Projeto Individual */
+/* Card de Projeto Individual Fiel ao Design */
 .project-card {
-    height: 100px;
+    width: 200px;
+    height: 96px;
     border-radius: 8px;
     overflow: hidden;
-    position: relative;
     text-decoration: none;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 150ms ease, box-shadow 150ms ease;
+    justify-content: flex-end;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
     cursor: pointer;
+    background: #22272b;
 }
 
 .project-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    filter: brightness(1.1);
 }
 
 .project-card-title {
     color: #ffffff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     margin: 0;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.project-card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
 
-.project-card-meta {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(0, 0, 0, 0.35);
-    padding: 2px 6px;
-    border-radius: 4px;
-    backdrop-filter: blur(4px);
-}
-
-/* Card Ação: Criar Novo Quadro */
+/* Card Ação: Criar Novo Quadro Fiel à Imagem 2 */
 .project-card-create {
-    height: 100px;
+    width: 200px;
+    height: 96px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 2px dashed rgba(255, 255, 255, 0.25);
+    background: #282e33;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 150ms ease, border-color 150ms ease;
+    transition: background 150ms ease;
 }
 
 .project-card-create:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.45);
+    background: #333a41;
 }
 
 .project-card-create-text {
-    color: #9fedc7;
-    font-size: 14px;
-    font-weight: 600;
+    color: #b6c2cf;
+    font-size: 13.5px;
+    font-weight: 500;
 }
+
 
 /* ── Seção Suas Áreas de Trabalho / Meus Projetos ── */
 .workspace-header-row {

@@ -18,15 +18,11 @@
     function resolveUrl(url) {
         if (!url) return url;
         if (typeof url === 'string' && url.startsWith('/')) {
-            if (window.location.port === '8080') {
-                return url;
-            }
-            var host = window.location.hostname || 'localhost';
-            var protocol = (window.location.protocol && window.location.protocol.startsWith('http')) ? window.location.protocol : 'http:';
-            return protocol + '//' + host + ':8080' + url;
+            return url;
         }
         return url;
     }
+
 
 
 
@@ -83,11 +79,13 @@
                 var colunaDestinoId = novoCard.getAttribute('data-coluna');
                 var colunaDestino = document.getElementById('coluna-' + String(colunaDestinoId))
                     || document.getElementById('coluna-' + String(colunaDestinoId).toLowerCase())
-                    || document.getElementById('coluna-' + String(colunaDestinoId).toUpperCase());
+                    || document.getElementById('coluna-' + String(colunaDestinoId).toUpperCase())
+                    || document.querySelector('.kanban-column[data-id="' + String(colunaDestinoId) + '"]');
                 var listaDestino = colunaDestino
                     ? colunaDestino.querySelector('.column-cards-list')
-                    : null;
+                    : (document.querySelector('.column-cards-list'));
                 if (!listaDestino) throw new Error('Lista de destino não encontrada.');
+
 
                 var cardAtual = document.getElementById('card-' + demandaId);
                 var colunaOrigem = cardAtual ? cardAtual.closest('.kanban-column') : null;
@@ -193,10 +191,16 @@
         }
     }
 
-    /**
-     * Exibe notificação toast de feedback.
-     */
+    var ultimasMensagensToast = {};
+
     function exibirToast(mensagem, tipo) {
+        if (!mensagem) return;
+        var agora = Date.now();
+        if (ultimasMensagensToast[mensagem] && (agora - ultimasMensagensToast[mensagem]) < 2000) {
+            return;
+        }
+        ultimasMensagensToast[mensagem] = agora;
+
         var container = document.querySelector('.alerts-container');
         if (!container) {
             container = document.createElement('div');
@@ -216,6 +220,7 @@
             setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
         }, 4500);
     }
+
 
     /**
      * Envia requisição AJAX e atualiza o conteúdo do modal.
@@ -255,22 +260,28 @@
      * Gerenciador do Modal de Detalhes da Demanda
      */
     function iniciarModalDetalhes() {
-        var backdrop = document.getElementById('modal-detalhe-demanda');
-        var dialog = document.getElementById('modal-detail-dialog-content');
-        var board = document.getElementById('conteudo-quadro');
-        var boardTrack = document.getElementById('board-columns-track');
-        if (!backdrop || !dialog) return;
-
         window.abrirModalDetalheDemandas = function (target) {
+            var backdrop = document.getElementById('modal-detalhe-demanda');
+            var dialog = document.getElementById('modal-detail-dialog-content');
+            var board = document.getElementById('conteudo-quadro');
+            var boardTrack = document.getElementById('board-columns-track');
+
+            if (!backdrop || !dialog) return;
+
             var id = target;
+            var targetCard = null;
             if (target && typeof target === 'object') {
-                var card = target.closest('.kanban-card');
-                id = card ? card.getAttribute('data-id') : (target.getAttribute('data-id') || target.getAttribute('data-open-detail'));
+                targetCard = target.closest('.kanban-card');
+                id = targetCard ? targetCard.getAttribute('data-id') : (target.getAttribute('data-id') || target.getAttribute('data-open-detail'));
             }
             if (!id || id === 'undefined' || id === 'null') return;
             currentDetailId = id;
 
-            lastActiveCard = document.activeElement;
+            // Destacar o cartão ativo visualmente
+            document.querySelectorAll('.kanban-card').forEach(function(c) { c.classList.remove('is-active'); });
+            if (targetCard) targetCard.classList.add('is-active');
+
+            lastActiveCard = target && typeof target.focus === 'function' ? target : (targetCard || document.activeElement);
             boardScrollLeft = boardTrack ? boardTrack.scrollLeft : 0;
             boardScrollTop = boardTrack ? boardTrack.scrollTop : 0;
             pageScrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
@@ -285,7 +296,6 @@
                                '</div>';
 
             fetch(resolveUrl('/demandas/' + id + '/modal'))
-
                 .then(function (res) {
                     if (!res.ok) throw new Error('Não foi possível carregar os detalhes.');
                     return res.text();
@@ -296,21 +306,25 @@
                     if (titleInput) setTimeout(function () { titleInput.focus(); }, 60);
                 })
                 .catch(function (err) {
-                    var msg = (err && (err.message === 'Load failed' || err.message.indexOf('Failed to fetch') !== -1))
-                        ? 'Servidor offline. Certifique-se de executar "mvn spring-boot:run" no terminal.'
-                        : (err ? err.message : 'Erro ao carregar detalhes.');
-                    exibirToast(msg, 'erro');
+                    exibirToast(err && err.message ? err.message : 'Erro ao carregar os detalhes da demanda.', 'erro');
                     window.fecharModalDetalheDemandas();
                 });
         };
 
-
         window.fecharModalDetalheDemandas = function () {
-            backdrop.classList.remove('is-open');
-            backdrop.setAttribute('aria-hidden', 'true');
+            var backdrop = document.getElementById('modal-detalhe-demanda');
+            var dialog = document.getElementById('modal-detail-dialog-content');
+            var board = document.getElementById('conteudo-quadro');
+            var boardTrack = document.getElementById('board-columns-track');
+
+            if (backdrop) {
+                backdrop.classList.remove('is-open');
+                backdrop.setAttribute('aria-hidden', 'true');
+            }
             document.body.classList.remove('modal-open');
             if (board) board.removeAttribute('inert');
-            dialog.innerHTML = '';
+            if (dialog) dialog.innerHTML = '';
+            document.querySelectorAll('.kanban-card').forEach(function(c) { c.classList.remove('is-active'); });
             currentDetailId = null;
 
             if (boardTrack) {
@@ -324,28 +338,23 @@
             }
         };
 
-        // Fechar no botão X ou backdrop
-        backdrop.addEventListener('click', function (e) {
-            if (e.target.closest('[data-close-modal-detail]') || e.target === backdrop) {
-                e.preventDefault();
-                window.fecharModalDetalheDemandas();
-            }
-        });
-
-        // Fechar na tecla Escape e manter o foco contido no modal.
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && backdrop.classList.contains('is-open')) {
-                var popoverAberto = dialog.querySelector('.popover-menu:not(.is-hidden)');
-                if (popoverAberto) {
-                    popoverAberto.classList.add('is-hidden');
-                    return;
+            var backdrop = document.getElementById('modal-detalhe-demanda');
+            var dialog = document.getElementById('modal-detail-dialog-content');
+            if (e.key === 'Escape' && backdrop && backdrop.classList.contains('is-open')) {
+                if (dialog) {
+                    var popoverAberto = dialog.querySelector('.popover-menu:not(.is-hidden)');
+                    if (popoverAberto) {
+                        popoverAberto.classList.add('is-hidden');
+                        return;
+                    }
                 }
                 e.preventDefault();
                 window.fecharModalDetalheDemandas();
                 return;
             }
 
-            if (e.key === 'Tab' && backdrop.classList.contains('is-open')) {
+            if (e.key === 'Tab' && backdrop && backdrop.classList.contains('is-open') && dialog) {
                 var focaveis = dialog.querySelectorAll(
                     'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'
                 );
@@ -362,7 +371,18 @@
             }
         });
 
+        document.addEventListener('click', function (e) {
+            var backdrop = document.getElementById('modal-detalhe-demanda');
+            if (backdrop && backdrop.classList.contains('is-open')) {
+                if (e.target.closest('[data-close-modal-detail]') || e.target === backdrop) {
+                    e.preventDefault();
+                    window.fecharModalDetalheDemandas();
+                }
+            }
+        });
+
         dialog.addEventListener('keydown', function (e) {
+
             if (e.key === 'Enter' && e.target.matches('.chk-item-input')) {
                 e.preventDefault();
                 window.adicionarItemChecklistModal(
@@ -431,6 +451,24 @@
                     .then(function (html) { dialog.innerHTML = html; });
             }
         };
+
+        window.adicionarImagemModal = function () {
+            if (!currentDetailId) return;
+            var input = dialog.querySelector('#input-modal-imagem-url');
+            if (!input || !input.value.trim()) {
+                exibirToast('Informe a URL da imagem.', 'erro');
+                return;
+            }
+            var params = new URLSearchParams();
+            params.append('imagemUrl', input.value.trim());
+            return atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem', 'POST', params, 'Imagem anexada.');
+        };
+
+        window.removerImagemModal = function () {
+            if (!currentDetailId) return;
+            return atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem/remover', 'POST', null, 'Imagem removida.');
+        };
+
 
         window.inserirFormatacao = function (tipo) {
             var textarea = dialog.querySelector('#modal-textarea-descricao');
@@ -610,6 +648,43 @@
             atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/membros/remover', 'POST', params, 'Membro removido.');
         };
 
+        // Imagem
+        window.uploadImagemArquivoModal = function (input) {
+            if (!currentDetailId || !input || !input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (file.size > 10 * 1024 * 1024) {
+                exibirToast('A imagem deve ter no máximo 10MB.', 'erro');
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var base64Url = e.target.result;
+                var params = new URLSearchParams();
+                params.append('imagemUrl', base64Url);
+                atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem', 'POST', params, 'Imagem enviada com sucesso!');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.adicionarImagemModal = function () {
+            if (!currentDetailId) return;
+            var input = dialog.querySelector('#input-modal-imagem-url');
+            if (!input || !input.value.trim()) {
+                exibirToast('Informe a URL ou selecione uma imagem do seu computador.', 'erro');
+                return;
+            }
+            var params = new URLSearchParams();
+            params.append('imagemUrl', input.value.trim());
+            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem', 'POST', params, 'Imagem anexada!');
+        };
+
+        window.removerImagemModal = function () {
+            if (!currentDetailId) return;
+            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem/remover', 'POST', null, 'Imagem removida.');
+        };
+
+
         // Acompanhamento
         window.toggleAcompanharModal = function () {
             atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/acompanhar', 'POST', null, 'Preferência de acompanhamento alterada.');
@@ -672,15 +747,14 @@
      */
     function iniciarInteracaoCartoes() {
         var cards = document.querySelectorAll('.kanban-card');
-        if (!cards.length) return;
 
         function enviarFormularioCard(form, mensagem) {
             if (!form) return Promise.resolve();
             var cardEl = form.closest('.kanban-card');
             var demandaId = cardEl ? cardEl.getAttribute('data-id') : null;
             var params = new URLSearchParams(new FormData(form));
-            return fetch(resolveUrl(form.action), {
 
+            return fetch(resolveUrl(form.action), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -693,20 +767,6 @@
                 return res.text();
             })
             .then(function (html) {
-                if (html && html.trim().startsWith('<section')) {
-                    var template = document.createElement('template');
-                    template.innerHTML = html.trim();
-                    var novoCard = template.content.querySelector('.kanban-card');
-                    if (novoCard && cardEl) {
-                        if (cardEl.classList.contains('is-selected')) {
-                            novoCard.classList.add('is-selected');
-                        }
-                        cardEl.replaceWith(novoCard);
-                        if (mensagem) exibirToast(mensagem, 'sucesso');
-                        return;
-                    }
-
-                }
                 if (demandaId) {
                     return sincronizarCardDoServidor(demandaId).then(function () {
                         if (mensagem) exibirToast(mensagem, 'sucesso');
@@ -717,6 +777,7 @@
                 exibirToast(err.message || 'Erro ao atualizar a demanda.', 'erro');
             });
         }
+
 
 
         window.toggleConcluidoCard = function (form) {
@@ -824,21 +885,35 @@
         };
 
 
-        document.addEventListener('click', function (e) {
-            var card = e.target.closest('.kanban-card');
-            if (card) {
-                if (e.target.closest('a, button, select, form, input, label, textarea')) {
-                    return;
+        window.excluirDemanda = function (btn) {
+            var card = btn ? btn.closest('.kanban-card') : null;
+            if (!card) return;
+            var id = card.getAttribute('data-id');
+            if (!id) return;
+
+            if (!confirm('Tem certeza que deseja excluir esta demanda?')) return;
+
+            var coluna = card.closest('.kanban-column');
+            fetch(resolveUrl('/demandas/' + id + '/api'), {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-                // Alterna seleção individual permitindo múltiplos cartões/checklists selecionados simultaneamente
-                card.classList.toggle('is-selected');
-                card.focus();
-            }
-        });
-
-
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error('Não foi possível excluir a demanda.');
+                card.remove();
+                if (coluna) atualizarContadoresColuna(coluna);
+                document.querySelectorAll('.kanban-column').forEach(atualizarContadoresColuna);
+                exibirToast('Demanda excluída com sucesso.', 'sucesso');
+            })
+            .catch(function (err) {
+                exibirToast(err.message || 'Erro ao excluir a demanda.', 'erro');
+            });
+        };
 
         window.excluirLista = function (colunaId) {
+
             if (!colunaId) return;
             if (!confirm('Tem certeza que deseja excluir esta lista?')) return;
 
@@ -864,7 +939,25 @@
                 exibirToast(err.message || 'Erro ao excluir a lista.', 'erro');
             });
         };
+
+        document.addEventListener('click', function (e) {
+            var openBtn = e.target.closest('.btn-card-open-modal, .btn-quick-edit-open-modal, [data-action="open-card-modal"]');
+            if (openBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.abrirModalDetalheDemandas(openBtn);
+                return;
+            }
+
+            var card = e.target.closest('.kanban-card');
+            if (card && !e.target.closest('button') && !e.target.closest('form') && !e.target.closest('a') && !e.target.closest('textarea') && !card.classList.contains('is-quick-editing')) {
+                window.abrirModalDetalheDemandas(card);
+            }
+        });
     }
+
+
+
 
 
     /**
@@ -985,373 +1078,358 @@
      * O formulário é enviado via fetch para POST /colunas e a nova coluna é
      * injetada no DOM uma única vez, sem recarregar a página.
      */
-    function iniciarAdicaoLista() {
-        var container   = document.getElementById('container-add-lista');
-        var triggerBtn  = document.getElementById('btn-add-lista-trigger');
-        var form        = document.getElementById('form-add-lista');
-        var input       = document.getElementById('input-nome-lista');
-        var cancelBtn   = document.getElementById('btn-cancelar-add-lista');
-        var errorMsg    = document.getElementById('add-list-error-msg');
-        var track       = document.getElementById('board-columns-track');
+    /**
+     * Adição Inline de Lista
+     */
+    function fecharFormularioAddLista() {
+        var container = document.getElementById('container-add-lista');
+        var triggerBtn = document.getElementById('btn-add-lista-trigger');
+        var form = document.getElementById('form-add-lista');
+        var input = document.getElementById('input-nome-lista');
+        var errorMsg = document.getElementById('add-list-error-msg');
 
-        if (!container || !triggerBtn || !form || !input) return;
-
-        /* ── Helpers ── */
-        function abrirFormulario() {
-            container.classList.add('form-open');
-            triggerBtn.setAttribute('aria-expanded', 'true');
-            input.value = '';
-            limparErro();
-            setTimeout(function () { input.focus(); }, 30);
-        }
-
-        function fecharFormulario() {
-            container.classList.remove('form-open');
+        if (container) container.classList.remove('form-open');
+        if (form) form.classList.add('is-hidden');
+        if (triggerBtn) {
             triggerBtn.setAttribute('aria-expanded', 'false');
-            input.value = '';
-            limparErro();
             triggerBtn.focus();
         }
+        if (input) input.value = '';
+        if (errorMsg) {
+            errorMsg.textContent = '';
+            errorMsg.classList.remove('is-visible');
+        }
+    }
 
-        function mostrarErro(msg) {
-            if (errorMsg) {
-                errorMsg.textContent = msg;
-                errorMsg.classList.add('is-visible');
-            }
+    function mostrarErroAddLista(msg) {
+        var input = document.getElementById('input-nome-lista');
+        var errorMsg = document.getElementById('add-list-error-msg');
+        if (errorMsg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('is-visible');
+        }
+        if (input) {
             input.classList.add('has-error');
             input.setAttribute('aria-invalid', 'true');
             input.focus();
         }
+    }
 
-        function limparErro() {
-            if (errorMsg) {
-                errorMsg.textContent = '';
-                errorMsg.classList.remove('is-visible');
-            }
-            input.classList.remove('has-error');
-            input.removeAttribute('aria-invalid');
+    function submeterFormularioAddLista(form) {
+        var input = document.getElementById('input-nome-lista');
+        if (!input) return;
+
+        var nome = input.value.trim();
+        if (!nome) {
+            mostrarErroAddLista('O nome da lista não pode ser vazio.');
+            return;
         }
 
-        /* ── Inicia com formulário fechado ── */
-        container.classList.remove('form-open');
+        var container = document.getElementById('container-add-lista');
+        var track = document.getElementById('board-columns-track');
+        var submitBtn = form ? form.querySelector('.btn-add-list-submit') : null;
+        if (submitBtn) submitBtn.disabled = true;
 
-        /* ── Abrir ao clicar no botão ── */
-        triggerBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            abrirFormulario();
-        });
+        var params = new URLSearchParams();
+        params.append('nome', nome);
 
-        /* ── Cancelar via botão X ── */
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                fecharFormulario();
-            });
-        }
-
-        /* ── Cancelar via Escape ── */
-        input.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopPropagation();
-                fecharFormulario();
-            }
-        });
-
-        /* ── Limpar erro ao digitar ── */
-        input.addEventListener('input', function () {
-            if (input.value.trim().length > 0) limparErro();
-        });
-
-        /* ── Envio via fetch — sem reload de página ── */
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            var nome = input.value.trim();
-            if (!nome) {
-                mostrarErro('O nome da lista não pode ser vazio.');
-                return;
-            }
-
-            var submitBtn = form.querySelector('.btn-add-list-submit');
-            if (submitBtn) submitBtn.disabled = true;
-
-            var params = new URLSearchParams();
-            params.append('nome', nome);
-
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: params.toString()
-            })
-            .then(function (res) {
-                /* Servidor redireciona para /?novaColunaId=XYZ após criar. */
-                /* Extraímos o ID da URL de destino e buscamos o fragmento da coluna. */
-                var location = res.url || '';
-                var match = location.match(/novaColunaId=([^&#]+)/);
-                var novaId = match ? match[1] : null;
-
-                if (!novaId) {
-                    /* Fallback: recarrega apenas o track via fetch da raiz */
-                    return fetch('/')
-                        .then(function (r) { return r.text(); })
-                        .then(function (html) {
-                            var parser = new DOMParser();
-                            var doc = parser.parseFromString(html, 'text/html');
-                            var novasColunasEls = doc.querySelectorAll('.kanban-column');
-                            var existentes = new Set();
-                            document.querySelectorAll('.kanban-column').forEach(function (c) {
-                                existentes.add(c.id);
-                            });
-                            novasColunasEls.forEach(function (col) {
-                                if (!existentes.has(col.id)) {
-                                    track.insertBefore(col, container);
-                                }
-                            });
-                            fecharFormulario();
-                            rolarParaFinalDoTrack();
-                        });
-                }
-
-                return fetch('/demandas/coluna-fragment?colunaId=' + novaId)
-                    .catch(function () { return null; })
-                    .then(function (r) {
-                        if (r && r.ok) return r.text();
-                        /* Se endpoint não existir, busca a página inteira e extrai */
-                        return fetch('/').then(function (pr) { return pr.text(); }).then(function (html) {
-                            var parser = new DOMParser();
-                            var doc = parser.parseFromString(html, 'text/html');
-                            var col = doc.getElementById('coluna-' + novaId.toLowerCase());
-                            return col ? col.outerHTML : null;
-                        });
-                    })
-                    .then(function (html) {
-                        if (html) {
-                            if (!document.getElementById('coluna-' + novaId.toLowerCase())) {
-                                var tmpl = document.createElement('template');
-                                tmpl.innerHTML = html.trim();
-                                var novaColuna = tmpl.content.firstElementChild;
-                                if (novaColuna) {
-                                    track.insertBefore(novaColuna, container);
-                                    iniciarRecolhimentoColunas();
-                                    iniciarModal();
-                                }
-                            }
-                        }
-                        fecharFormulario();
-                        rolarParaFinalDoTrack();
-                        exibirToast('Lista "' + nome + '" criada com sucesso.', 'sucesso');
-                    });
-            })
-            .catch(function () {
-                exibirToast('Não foi possível criar a lista. Tente novamente.', 'erro');
-            })
-            .finally(function () {
-                if (submitBtn) submitBtn.disabled = false;
-            });
-        });
-
-        function rolarParaFinalDoTrack() {
-            if (track) {
+        fetch('/colunas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString()
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('Não foi possível criar a lista.');
+            return res.text();
+        })
+        .then(function (html) {
+            var tmpl = document.createElement('template');
+            tmpl.innerHTML = html.trim();
+            var novaColunaEl = tmpl.content.querySelector('.kanban-column');
+            if (novaColunaEl && track && container) {
+                track.insertBefore(novaColunaEl, container);
+                fecharFormularioAddLista();
                 setTimeout(function () {
                     track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
                 }, 100);
+                exibirToast('Lista "' + nome + '" criada com sucesso.', 'sucesso');
+            } else {
+                return fetch('/quadro')
+                    .then(function (r) { return r.text(); })
+                    .then(function (qHtml) {
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(qHtml, 'text/html');
+                        var novasColunasEls = doc.querySelectorAll('.kanban-column');
+                        var existentes = new Set();
+                        document.querySelectorAll('.kanban-column').forEach(function (c) {
+                            existentes.add(c.id);
+                        });
+                        novasColunasEls.forEach(function (col) {
+                            if (!existentes.has(col.id) && track && container) {
+                                track.insertBefore(col, container);
+                            }
+                        });
+                        fecharFormularioAddLista();
+                        setTimeout(function () {
+                            track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' });
+                        }, 100);
+                        exibirToast('Lista "' + nome + '" criada com sucesso.', 'sucesso');
+                    });
             }
-        }
+        })
+        .catch(function (err) {
+            mostrarErroAddLista(err.message || 'Não foi possível criar a lista.');
+        })
+        .finally(function () {
+            if (submitBtn) submitBtn.disabled = false;
+        });
     }
 
+    function iniciarAdicaoLista() {
+        /* Registrado via delegação de eventos global em document */
+    }
 
     /**
      * Compositor de Novo Cartão ("Adicionar um cartão")
-     * Gerencia a abertura, envio por AJAX e fechamento do compositor inline de cada coluna.
      */
+    function abrirCompositor(coluna) {
+        if (!coluna) return;
+        coluna.classList.add('composer-open');
+
+        var footer = coluna.querySelector('.column-footer');
+        var triggerBtn = footer ? footer.querySelector('.btn-add-card, .btn-open-compositor') : null;
+        if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'true');
+
+        var input = coluna.querySelector('.card-composer-input');
+        if (input) {
+            input.value = '';
+            limparErroCompositor(coluna);
+            setTimeout(function () { input.focus(); }, 30);
+        }
+    }
+
+    function fecharCompositor(coluna, focarTrigger) {
+        if (!coluna) return;
+        coluna.classList.remove('composer-open');
+
+        var footer = coluna.querySelector('.column-footer');
+        var triggerBtn = footer ? footer.querySelector('.btn-add-card, .btn-open-compositor') : null;
+        if (triggerBtn) {
+            triggerBtn.setAttribute('aria-expanded', 'false');
+            if (focarTrigger) triggerBtn.focus();
+        }
+
+        var input = coluna.querySelector('.card-composer-input');
+        if (input) {
+            input.value = '';
+            limparErroCompositor(coluna);
+        }
+    }
+
+    function mostrarErroCompositor(coluna, msg) {
+        if (!coluna) return;
+        var input = coluna.querySelector('.card-composer-input');
+        var errorEl = coluna.querySelector('.card-composer-error');
+        if (input) {
+            input.classList.add('has-error');
+            input.setAttribute('aria-invalid', 'true');
+            input.focus();
+        }
+        if (errorEl) {
+            errorEl.textContent = msg;
+            errorEl.classList.add('is-visible');
+        }
+    }
+
+    function limparErroCompositor(coluna) {
+        if (!coluna) return;
+        var input = coluna.querySelector('.card-composer-input');
+        var errorEl = coluna.querySelector('.card-composer-error');
+        if (input) {
+            input.classList.remove('has-error');
+            input.removeAttribute('aria-invalid');
+        }
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.classList.remove('is-visible');
+        }
+    }
+
+    function submeterCompositor(coluna) {
+        if (!coluna) return;
+        var input = coluna.querySelector('.card-composer-input');
+        if (!input) return;
+
+        var titulo = input.value.trim();
+        if (!titulo) {
+            mostrarErroCompositor(coluna, 'O título não pode ser vazio.');
+            return;
+        }
+
+        var colunaId = coluna.getAttribute('data-coluna-id') || coluna.getAttribute('data-id');
+        if (!colunaId) {
+            var idAttr = coluna.id;
+            if (idAttr && idAttr.startsWith('coluna-')) {
+                colunaId = idAttr.replace('coluna-', '').toUpperCase();
+            }
+        }
+        if (!colunaId) return;
+
+        var submitBtn = coluna.querySelector('.btn-compositor-submit');
+        if (submitBtn) submitBtn.disabled = true;
+
+        var params = new URLSearchParams();
+        params.append('titulo', titulo);
+        params.append('coluna', colunaId);
+        params.append('prioridade', 'MEDIA');
+
+        fetch('/demandas/compositor', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString()
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('Não foi possível criar o cartão.');
+            return res.text();
+        })
+        .then(function (html) {
+            var tmpl = document.createElement('template');
+            tmpl.innerHTML = html.trim();
+            var novoCard = tmpl.content.querySelector('.kanban-card');
+            if (!novoCard) throw new Error('Fragmento retornado é inválido.');
+
+            novoCard.classList.add('card--inserido');
+
+            var cardsList = coluna.querySelector('.column-cards-list');
+            if (cardsList) {
+                var emptyState = cardsList.querySelector('.column-empty-state');
+                if (emptyState) emptyState.remove();
+
+                cardsList.appendChild(novoCard);
+                atualizarContadoresColuna(coluna);
+            }
+
+            fecharCompositor(coluna, false);
+            novoCard.focus();
+            exibirToast('Cartão adicionado com sucesso.', 'sucesso');
+        })
+        .catch(function (err) {
+            mostrarErroCompositor(coluna, err.message || 'Erro ao criar o cartão.');
+        })
+        .finally(function () {
+            if (submitBtn) submitBtn.disabled = false;
+        });
+    }
+
     function iniciarCompositorCartoes() {
-        document.addEventListener('click', function (e) {
-            var btnOpen = e.target.closest('.btn-open-compositor');
-            if (btnOpen) {
-                e.preventDefault();
-                e.stopPropagation();
+        /* Registrado via delegação de eventos global em document */
+    }
 
-                var coluna = btnOpen.closest('.kanban-column');
-                if (!coluna) return;
+    /* ── Delegação de Eventos Global no Document ── */
+    document.addEventListener('click', function (e) {
+        // 1. Trigger "Adicionar outra lista"
+        var triggerAddLista = e.target.closest('#btn-add-lista-trigger, .btn-add-list-trigger');
+        if (triggerAddLista) {
+            e.preventDefault();
+            e.stopPropagation();
+            var container = document.getElementById('container-add-lista');
+            var form = document.getElementById('form-add-lista');
+            var input = document.getElementById('input-nome-lista');
+            if (container) {
+                container.classList.add('form-open');
+                if (form) form.classList.remove('is-hidden');
+                triggerAddLista.setAttribute('aria-expanded', 'true');
+                if (input) {
+                    input.value = '';
+                    setTimeout(function () { input.focus(); }, 30);
+                }
+            }
+            return;
+        }
 
-                /* Fechar outros compositores abertos */
+        // 2. Cancelar "Adicionar outra lista"
+        var cancelAddLista = e.target.closest('#btn-cancelar-add-lista, .btn-add-list-cancel');
+        if (cancelAddLista) {
+            e.preventDefault();
+            e.stopPropagation();
+            fecharFormularioAddLista();
+            return;
+        }
+
+        // 3. Trigger "Adicionar um cartão"
+        var triggerAddCard = e.target.closest('.btn-open-compositor, .btn-add-card');
+        if (triggerAddCard) {
+            e.preventDefault();
+            e.stopPropagation();
+            var coluna = triggerAddCard.closest('.kanban-column');
+            if (coluna) {
                 document.querySelectorAll('.kanban-column.composer-open').forEach(function (col) {
                     if (col !== coluna) fecharCompositor(col, false);
                 });
-
                 abrirCompositor(coluna);
-                return;
             }
+            return;
+        }
 
-            var btnCancel = e.target.closest('.btn-compositor-cancel');
-            if (btnCancel) {
-                e.preventDefault();
-                var coluna = btnCancel.closest('.kanban-column');
-                if (coluna) fecharCompositor(coluna, true);
-                return;
-            }
+        // 4. Cancelar compositor "Adicionar um cartão"
+        var cancelAddCard = e.target.closest('.btn-compositor-cancel');
+        if (cancelAddCard) {
+            e.preventDefault();
+            e.stopPropagation();
+            var coluna = cancelAddCard.closest('.kanban-column');
+            if (coluna) fecharCompositor(coluna, true);
+            return;
+        }
 
-            var btnSubmit = e.target.closest('.btn-compositor-submit');
-            if (btnSubmit) {
-                e.preventDefault();
-                var coluna = btnSubmit.closest('.kanban-column');
-                if (coluna) submeterCompositor(coluna);
-                return;
-            }
-        });
+        // 5. Submit compositor "Adicionar um cartão"
+        var submitAddCard = e.target.closest('.btn-compositor-submit');
+        if (submitAddCard) {
+            e.preventDefault();
+            e.stopPropagation();
+            var coluna = submitAddCard.closest('.kanban-column');
+            if (coluna) submeterCompositor(coluna);
+            return;
+        }
+    });
 
-        document.addEventListener('keydown', function (e) {
-            var input = e.target.closest('.card-composer-input');
-            if (!input) return;
+    document.addEventListener('keydown', function (e) {
+        // Escape no input de nova lista
+        var inputLista = e.target.closest('#input-nome-lista');
+        if (inputLista && e.key === 'Escape') {
+            e.preventDefault();
+            fecharFormularioAddLista();
+            return;
+        }
 
-            var coluna = input.closest('.kanban-column');
+        // Enter/Escape no compositor de cartão
+        var inputCard = e.target.closest('.card-composer-input');
+        if (inputCard) {
+            var coluna = inputCard.closest('.kanban-column');
             if (!coluna) return;
 
             if (e.key === 'Escape') {
                 e.preventDefault();
-                e.stopPropagation();
                 fecharCompositor(coluna, true);
             } else if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                e.stopPropagation();
                 submeterCompositor(coluna);
             }
-        });
-
-        document.addEventListener('input', function (e) {
-            var input = e.target.closest('.card-composer-input');
-            if (input && input.value.trim().length > 0) {
-                limparErroCompositor(input.closest('.kanban-column'));
-            }
-        });
-
-        function abrirCompositor(coluna) {
-            coluna.classList.add('composer-open');
-
-            var footer = coluna.querySelector('.column-footer');
-            var triggerBtn = footer ? footer.querySelector('.btn-add-card') : null;
-            if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'true');
-
-            var input = coluna.querySelector('.card-composer-input');
-            if (input) {
-                input.value = '';
-                limparErroCompositor(coluna);
-                setTimeout(function () { input.focus(); }, 30);
-            }
         }
+    });
 
-        function fecharCompositor(coluna, focarTrigger) {
-            coluna.classList.remove('composer-open');
-
-            var footer = coluna.querySelector('.column-footer');
-            var triggerBtn = footer ? footer.querySelector('.btn-add-card') : null;
-            if (triggerBtn) {
-                triggerBtn.setAttribute('aria-expanded', 'false');
-                if (focarTrigger) triggerBtn.focus();
-            }
-
-            var input = coluna.querySelector('.card-composer-input');
-            if (input) {
-                input.value = '';
-                limparErroCompositor(coluna);
-            }
+    document.addEventListener('submit', function (e) {
+        if (e.target && e.target.id === 'form-add-lista') {
+            e.preventDefault();
+            submeterFormularioAddLista(e.target);
         }
+    });
 
-        function mostrarErroCompositor(coluna, msg) {
-            var input = coluna.querySelector('.card-composer-input');
-            var errorEl = coluna.querySelector('.card-composer-error');
-            if (input) {
-                input.classList.add('has-error');
-                input.setAttribute('aria-invalid', 'true');
-                input.focus();
-            }
-            if (errorEl) {
-                errorEl.textContent = msg;
-                errorEl.classList.add('is-visible');
-            }
-        }
-
-        function limparErroCompositor(coluna) {
-            if (!coluna) return;
-            var input = coluna.querySelector('.card-composer-input');
-            var errorEl = coluna.querySelector('.card-composer-error');
-            if (input) {
-                input.classList.remove('has-error');
-                input.removeAttribute('aria-invalid');
-            }
-            if (errorEl) {
-                errorEl.textContent = '';
-                errorEl.classList.remove('is-visible');
-            }
-        }
-
-        function submeterCompositor(coluna) {
-            var input = coluna.querySelector('.card-composer-input');
-            if (!input) return;
-
-            var titulo = input.value.trim();
-            if (!titulo) {
-                mostrarErroCompositor(coluna, 'O título não pode ser vazio.');
-                return;
-            }
-
-            var colunaId = coluna.getAttribute('data-coluna-id');
-            if (!colunaId) return;
-
-            var submitBtn = coluna.querySelector('.btn-compositor-submit');
-            if (submitBtn) submitBtn.disabled = true;
-
-            var params = new URLSearchParams();
-            params.append('titulo', titulo);
-            params.append('coluna', colunaId);
-            params.append('prioridade', 'MEDIA');
-
-            fetch('/demandas/compositor', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: params.toString()
-            })
-            .then(function (res) {
-                if (!res.ok) throw new Error('Não foi possível criar a demanda.');
-                return res.text();
-            })
-            .then(function (html) {
-                var tmpl = document.createElement('template');
-                tmpl.innerHTML = html.trim();
-                var novoCard = tmpl.content.querySelector('.kanban-card');
-                if (!novoCard) throw new Error('Fragmento retornado é inválido.');
-
-                novoCard.classList.add('card--inserido');
-
-                var cardsList = coluna.querySelector('.column-cards-list');
-                if (cardsList) {
-                    var emptyState = cardsList.querySelector('.column-empty-state');
-                    if (emptyState) emptyState.remove();
-
-                    cardsList.appendChild(novoCard);
-                    atualizarContadoresColuna(coluna);
-                }
-
-                fecharCompositor(coluna, false);
-                novoCard.focus();
-                exibirToast('Cartão adicionado com sucesso.', 'sucesso');
-
-            })
-            .catch(function (err) {
-                mostrarErroCompositor(coluna, err.message || 'Erro ao criar o cartão.');
-            })
-            .finally(function () {
-                if (submitBtn) submitBtn.disabled = false;
-            });
-        }
-    }
 
 
     function inicializar() {

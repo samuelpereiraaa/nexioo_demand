@@ -157,7 +157,40 @@ class DemandaServiceTest {
         verify(demandaRepository, never()).excluir(any());
     }
 
+    @Test
+    @DisplayName("deve alternar apenas a conclusão sem alterar a coluna/lista da demanda")
+    void deveAlternarApenasConclusaoSemMoverColuna() {
+        Demanda demanda = demandaComColuna(Coluna.A_FAZER);
+        demanda.setConcluido(false);
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(demanda));
+        when(demandaRepository.salvar(any(Demanda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Demanda resultado = demandaService.alternarConclusao(1L);
+
+        assertThat(resultado.isConcluido()).isTrue();
+        assertThat(resultado.getColuna()).isEqualTo(Coluna.A_FAZER);
+
+        Demanda reaberta = demandaService.alternarConclusao(1L);
+        assertThat(reaberta.isConcluido()).isFalse();
+        assertThat(reaberta.getColuna()).isEqualTo(Coluna.A_FAZER);
+    }
+
+    @Test
+    @DisplayName("deve adicionar e remover imagem da demanda")
+    void deveAdicionarERemoverImagem() {
+        Demanda demanda = demandaComColuna(Coluna.BACKLOG);
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(demanda));
+        when(demandaRepository.salvar(any(Demanda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Demanda comImagem = demandaService.adicionarImagem(1L, "https://exemplo.com/imagem.png");
+        assertThat(comImagem.getImagemUrl()).isEqualTo("https://exemplo.com/imagem.png");
+
+        Demanda semImagem = demandaService.removerImagem(1L);
+        assertThat(semImagem.getImagemUrl()).isNull();
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
+
 
     private Demanda demandaComColuna(Coluna coluna) {
         Demanda d = new Demanda();

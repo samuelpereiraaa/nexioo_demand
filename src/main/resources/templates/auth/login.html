@@ -43,10 +43,15 @@
 <main class="auth-container">
     <div class="auth-card">
 
-        <!-- Circular Spinner Logo Badge -->
-        <div class="auth-logo-badge">
-            <div class="auth-logo-spinner"></div>
+        <!-- Circular Brand Logo Badge -->
+        <div class="auth-logo-badge" title="Nexioo Demand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="4" height="16" rx="1.5" fill="#38bdf8"/>
+                <rect x="10" y="4" width="4" height="11" rx="1.5" fill="#38bdf8" fill-opacity="0.85"/>
+                <rect x="17" y="4" width="4" height="6" rx="1.5" fill="#38bdf8" fill-opacity="0.6"/>
+            </svg>
         </div>
+
 
         <!-- Header Titles -->
         <h1 class="auth-title">Welcome Back</h1>
@@ -151,25 +156,34 @@
         btn.disabled = true;
         btn.innerHTML = '<span>Logging in...</span>';
 
-        window.supabaseAuth.signIn(email, password)
-            .then(function(data) {
-                window.location.href = '/projetos';
-            })
-            .catch(function(err) {
-                var msg = err.message || 'Invalid login credentials.';
-                if (msg.indexOf('Email not confirmed') !== -1) {
-                    msg = 'Email não confirmado. Desative a opção "Confirm email" no painel do Supabase (Authentication -> Providers -> Email).';
-                }
-                banner.textContent = msg;
-                banner.style.display = 'block';
-            })
+        var params = new URLSearchParams();
+        params.append('email', email);
+        params.append('password', password);
 
-            .finally(function() {
-                btn.disabled = false;
-                btn.innerHTML = '<span>Login</span>';
-            });
+        fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString()
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Credenciais inválidas.');
+            window.location.href = '/projetos';
+        })
+
+        .catch(function(err) {
+            banner.textContent = err.message || 'Erro ao realizar login.';
+            banner.style.display = 'block';
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Login</span>';
+        });
     }
 </script>
+
 
 </body>
 </html>

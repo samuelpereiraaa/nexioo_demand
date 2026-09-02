@@ -113,9 +113,25 @@
         var authBtn = document.getElementById('btn-topbar-auth');
 
         if (user && user.email) {
-            var iniciais = user.email.substring(0, 2).toUpperCase();
+            var iniciais = 'SP';
+            var emailPrefix = user.email.split('@')[0];
+            if (user.user_metadata && user.user_metadata.full_name) {
+                var parts = user.user_metadata.full_name.trim().split(' ');
+                iniciais = (parts[0].charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
+            } else if (emailPrefix) {
+                if (emailPrefix.indexOf('.') !== -1 || emailPrefix.indexOf('_') !== -1) {
+                    var p = emailPrefix.split(/[._-]/);
+                    iniciais = (p[0].charAt(0) + (p[1] ? p[1].charAt(0) : '')).toUpperCase();
+                } else {
+                    iniciais = emailPrefix.substring(0, 2).toUpperCase();
+                }
+            }
             avatarEls.forEach(function (el) {
                 el.textContent = iniciais;
+            });
+            var avatarWrappers = document.querySelectorAll('.user-avatar-wrapper');
+            avatarWrappers.forEach(function(w) {
+                w.title = 'Usuário logado: ' + user.email;
             });
             if (authBtn) {
                 authBtn.textContent = 'Sair (' + user.email.split('@')[0] + ')';
@@ -123,7 +139,7 @@
             }
         } else {
             avatarEls.forEach(function (el) {
-                el.textContent = 'SO';
+                el.textContent = 'SP';
             });
             if (authBtn) {
                 authBtn.textContent = 'Entrar';
@@ -131,6 +147,7 @@
             }
         }
     }
+
 
     function bindAuthListeners() {
         if (!supabaseClient) return;

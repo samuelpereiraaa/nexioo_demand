@@ -17,6 +17,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -27,9 +32,11 @@ import java.util.List;
 @RequestMapping("/demandas")
 public class DemandaController {
 
+    private static final Logger log = LoggerFactory.getLogger(DemandaController.class);
 
     private final DemandaService demandaService;
     private final ColunaService colunaService;
+
 
     private static final List<String> MEMBROS_SUGERIDOS = Arrays.asList(
             "Samuel Oliveira", "Ana Silva", "Carlos Oliveira", "Mariana Costa", "Pedro Santos"
@@ -73,7 +80,8 @@ public class DemandaController {
         Demanda demanda = demandaService.criar(form);
         redirectAttributes.addFlashAttribute("mensagemSucesso",
                 "Demanda \"" + demanda.getTitulo() + "\" criada com sucesso.");
-        return "redirect:/";
+        return "redirect:/quadro";
+
     }
 
     // ── Visualizar Fragmento de Modal (AJAX) ──────────────────────────────────
@@ -342,7 +350,7 @@ public class DemandaController {
             return "fragments/cartao :: cartao";
         }
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Status atualizado com sucesso.");
-        return "redirect:/";
+        return "redirect:/quadro";
     }
 
     @PostMapping("/{id}/toggle-concluido")
@@ -357,14 +365,51 @@ public class DemandaController {
             model.addAttribute("colunas", colunaService.listarTodas());
             return "fragments/cartao :: cartao";
         }
-        boolean concluida = demanda.getColuna() != null
-                && Coluna.CONCLUIDO.getId().equalsIgnoreCase(demanda.getColuna().getId());
         redirectAttributes.addFlashAttribute(
                 "mensagemSucesso",
-                concluida ? "Demanda concluída!" : "Demanda reaberta."
+                demanda.isConcluido() ? "Demanda concluída!" : "Demanda reaberta."
         );
-        return "redirect:/";
+        return "redirect:/quadro";
     }
+
+    // ── Imagem (AJAX) ────────────────────────────────────────────────────────
+
+    @PostMapping("/{id}/imagem")
+    public String adicionarImagem(@PathVariable Long id, @RequestParam String imagemUrl, Model model) {
+        Demanda demanda = demandaService.adicionarImagem(id, imagemUrl);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/imagem/upload")
+    public String uploadImagemArquivo(
+            @PathVariable Long id,
+            @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
+            Model model) {
+        if (arquivo != null && !arquivo.isEmpty()) {
+            try {
+                String contentType = arquivo.getContentType();
+                byte[] bytes = arquivo.getBytes();
+                String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
+                String dataUrl = "data:" + (contentType != null ? contentType : "image/png") + ";base64," + base64;
+                demandaService.adicionarImagem(id, dataUrl);
+            } catch (java.io.IOException e) {
+                log.error("Erro ao processar upload de imagem para demanda id {}", id, e);
+            }
+        }
+        Demanda demanda = demandaService.buscarPorId(id);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/imagem/remover")
+    public String removerImagem(@PathVariable Long id, Model model) {
+        Demanda demanda = demandaService.removerImagem(id);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+
 
 
     // ── Excluir ──────────────────────────────────────────────────────────────
@@ -380,15 +425,18 @@ public class DemandaController {
         String titulo = demandaService.buscarPorId(id).getTitulo();
         demandaService.excluir(id);
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Demanda \"" + titulo + "\" excluída.");
-        return "redirect:/";
+        return "redirect:/quadro";
     }
 
+
+    @PostMapping("/{id}/api")
     @DeleteMapping("/{id}/api")
     @ResponseBody
     public ResponseEntity<Void> excluirApi(@PathVariable Long id) {
         demandaService.excluir(id);
         return ResponseEntity.ok().build();
     }
+
 
     // ── Auxiliares Privados ──────────────────────────────────────────────────
 

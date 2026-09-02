@@ -62,5 +62,9 @@ public interface DemandaService {
 
     Demanda toggleAcompanhar(Long id);
 
+    Demanda adicionarImagem(Long id, String imagemUrl);
+
+    Demanda removerImagem(Long id);
+
     void excluir(Long id);
 }

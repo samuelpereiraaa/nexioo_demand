@@ -393,9 +393,9 @@
 .kanban-card {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px 10px 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
     background: var(--color-surface-elevated);
     border: 1.5px solid var(--color-border-subtle);
     border-radius: 10px;
@@ -405,20 +405,50 @@
     outline: none;
 }
 
-/* ── Hover: sutil ── */
+/* ── Capa do Cartão (Imagem fixada no topo) ── */
+.card-cover-wrapper {
+    width: 100%;
+    max-height: 180px;
+    overflow: hidden;
+    background: #141418;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.card-cover-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+/* ── Conteúdo Principal do Cartão ── */
+.card-main-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px 10px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* ── Hover sutil no cartão normal ── */
 .kanban-card:hover {
     background: var(--color-surface-hover);
     border-color: var(--color-border);
 }
 
-/* ── Foco / Seleção do card: borda azul brilhante — Imagem 2 ── */
+/* ── Foco de teclado e hover sobre cartão concluído: borda verde oficial Nexioo Demand ── */
 .kanban-card:focus-visible,
-.kanban-card:focus,
-.kanban-card.is-selected {
-    border-color: #00A3FF;
-    box-shadow: 0 0 0 2px #00A3FF;
+.card--completed:hover {
+    border-color: #70B538;
+    box-shadow: 0 0 0 1px #70B538;
     background: var(--color-surface-hover);
 }
+
+
+
 
 
 
@@ -569,11 +599,11 @@
 .kanban-card:hover .card-actions-quick-group,
 .kanban-card:focus .card-actions-quick-group,
 .kanban-card:focus-visible .card-actions-quick-group,
-.kanban-card:focus-within .card-actions-quick-group,
-.kanban-card.is-selected .card-actions-quick-group {
+.kanban-card:focus-within .card-actions-quick-group {
     opacity: 1;
     pointer-events: auto;
 }
+
 
 
 .btn-card-action-circle {
@@ -600,7 +630,7 @@
 /* ── Editor Rápido Inline do Título (Imagens 2 e 3) ── */
 .kanban-card.is-quick-editing {
     background: #1E1F23;
-    border-color: #5B9BD5;
+    border-color: #70B538;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     flex-direction: column;
     align-items: stretch;
@@ -629,7 +659,7 @@
     font-family: inherit;
     color: #ffffff;
     background: #141418;
-    border: 2px solid #5B9BD5;
+    border: 2px solid #70B538;
     border-radius: 8px;
     resize: none;
     line-height: 1.4;
@@ -638,7 +668,7 @@
 
 .card-quick-edit-input:focus {
     outline: none;
-    border-color: #5B9BD5;
+    border-color: #70B538;
 }
 
 .card-quick-edit-actions {
@@ -649,21 +679,23 @@
 
 .btn-quick-edit-save {
     padding: 8px 16px;
-    background: #5B9BD5;
+    background: #70B538;
     border: none;
     border-radius: 10px;
     color: #ffffff;
     font-size: 13.5px;
     font-weight: 700;
     font-family: inherit;
+
     cursor: pointer;
     white-space: nowrap;
     transition: background 150ms ease;
 }
 
 .btn-quick-edit-save:hover {
-    background: #4A8AC4;
+    background: #5e9e2e;
 }
+
 
 .btn-quick-edit-open-modal {
     padding: 8px 14px;
@@ -726,18 +758,19 @@
 
 /* Por padrão: compositor oculto */
 .column-footer .card-composer {
-    display: none;
+    display: none !important;
 }
 
 /* Quando a coluna tem o compositor aberto: esconde trigger, mostra compositor */
 .kanban-column.composer-open .card-composer-trigger {
-    display: none;
+    display: none !important;
 }
 .kanban-column.composer-open .card-composer {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     gap: 8px;
 }
+
 
 /* ── Botão "Adicionar um cartão" — Imagem 1 ── */
 .btn-add-card {
@@ -833,10 +866,10 @@
     gap: 10px;
 }
 
-/* Botão "Adicionar Cartão" — azul ── */
+/* Botão "Adicionar Cartão" ── */
 .btn-compositor-submit {
     padding: 9px 16px;
-    background: #5B9BD5;
+    background: #70B538;
     border: none;
     border-radius: 10px;
     color: #ffffff;
@@ -849,13 +882,14 @@
 }
 
 .btn-compositor-submit:hover {
-    background: #4A8AC4;
+    background: #5e9e2e;
 }
 
 .btn-compositor-submit:focus-visible {
-    outline: 2px solid #5B9BD5;
+    outline: 2px solid #70B538;
     outline-offset: 2px;
 }
+
 
 /* Botão "Dica" — roxo — Imagem 2 ── */
 .btn-compositor-hint {
@@ -1422,15 +1456,26 @@ body.modal-open {
     align-self: flex-start;
 }
 
-/* Estado: botão oculto via classe (sem inline style) */
+/* Estado: botão oculto quando form-open */
 .add-list-column.form-open .btn-add-list-trigger {
-    display: none;
+    display: none !important;
 }
 
-/* Estado: formulário oculto por padrão */
+/* Estado: formulário oculto por padrão, visível quando form-open */
 .add-list-column:not(.form-open) .add-list-form {
-    display: none;
+    display: none !important;
 }
+
+.add-list-column.form-open .add-list-form {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    background: #101214;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border-subtle);
+}
+
 
 /* ── Botão "Adicionar outra lista" — Design Translucido Dark (Imagem de Referência) ── */
 .btn-add-list-trigger {
@@ -1507,8 +1552,8 @@ body.modal-open {
 
 .add-list-input:focus {
     outline: none;
-    border-color: #5B9BD5;
-    box-shadow: 0 0 0 2px rgba(91, 155, 213, 0.35);
+    border-color: #70B538;
+    box-shadow: 0 0 0 2px rgba(112, 181, 56, 0.35);
 }
 
 .add-list-input.has-error {
@@ -1536,10 +1581,10 @@ body.modal-open {
     gap: 10px;
 }
 
-/* Botão "Adicionar Lista" — azul conforme Imagem 2 */
+/* Botão "Adicionar Lista" */
 .btn-add-list-submit {
     padding: 9px 16px;
-    background: #5B9BD5;
+    background: #70B538;
     border: none;
     border-radius: 10px;
     color: #ffffff;
@@ -1552,13 +1597,14 @@ body.modal-open {
 }
 
 .btn-add-list-submit:hover {
-    background: #4A8AC4;
+    background: #5e9e2e;
 }
 
 .btn-add-list-submit:focus-visible {
-    outline: 2px solid #5B9BD5;
+    outline: 2px solid #70B538;
     outline-offset: 2px;
 }
+
 
 /* Botão "X" de cancelar */
 .btn-add-list-cancel {

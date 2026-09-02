@@ -42,44 +42,29 @@ public class DataLoader implements ApplicationRunner {
 
         log.info("Inicializando projetos e demandas de demonstração...");
 
-        // Projeto inicial "Meu quadro do Trello" (fiel à imagem de referência)
+        // Projeto inicial "Quadro Nexioo Demand"
         ProjetoForm p1 = new ProjetoForm();
-        p1.setNome("Meu quadro do Trello");
-        p1.setDescricao("Área de trabalho do Trello - Quadro principal de demandas");
+        p1.setNome("Quadro Nexioo Demand");
+        p1.setDescricao("Área de trabalho Nexioo Demand - Quadro principal de demandas");
         p1.setGradiente("linear-gradient(135deg, #a855f7, #ec4899)");
         projetoService.criar(p1);
 
         Coluna starterGuide = colunaService.buscarPorId("BACKLOG");
         if (starterGuide != null) {
-            starterGuide.setDescricao("Trello Starter Guide");
+            starterGuide.setDescricao("Guia Inicial Nexioo Demand");
         } else {
             ColunaForm cf = new ColunaForm();
-            cf.setNome("Trello Starter Guide");
+            cf.setNome("Guia Inicial Nexioo Demand");
             starterGuide = colunaService.criar(cf);
         }
 
-        // Cartão 1: "teste" (não concluído)
+
+        // Cartão único de demonstração ("teste") na lista inicial
         DemandaForm f1 = new DemandaForm();
         f1.setTitulo("teste");
         f1.setColuna(starterGuide);
         f1.setPrioridade(Prioridade.MEDIA);
         demandaService.criar(f1);
-
-        // Cartão 2: "aaaa" (concluído)
-        DemandaForm f2 = new DemandaForm();
-        f2.setTitulo("aaaa");
-        f2.setColuna(starterGuide);
-        f2.setPrioridade(Prioridade.MEDIA);
-        Demanda d2 = demandaService.criar(f2);
-        demandaService.alternarConclusao(d2.getId());
-
-        // Cartão 3: "teste" (concluído)
-        DemandaForm f3 = new DemandaForm();
-        f3.setTitulo("teste");
-        f3.setColuna(starterGuide);
-        f3.setPrioridade(Prioridade.MEDIA);
-        Demanda d3 = demandaService.criar(f3);
-        demandaService.alternarConclusao(d3.getId());
 
         carregado = true;
         log.info("Projetos e demandas de demonstração criados com sucesso.");

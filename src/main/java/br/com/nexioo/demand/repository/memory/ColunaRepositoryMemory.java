@@ -17,8 +17,9 @@ public class ColunaRepositoryMemory implements ColunaRepository {
             Collections.synchronizedMap(new LinkedHashMap<>());
 
     public ColunaRepositoryMemory() {
-        salvar(new Coluna("BACKLOG", "Trello Starter Guide", 1));
+        salvar(new Coluna("BACKLOG", "Guia Inicial Nexioo Demand", 1));
     }
+
 
     @Override
     public Coluna salvar(Coluna coluna) {

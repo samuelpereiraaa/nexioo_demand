@@ -27,7 +27,8 @@
                         <rect x="17" y="4" width="4" height="6" rx="1.5" fill="currentColor" fill-opacity="0.6"/>
                     </svg>
                 </span>
-                <span class="brand-text">Trello</span>
+                <span class="brand-text">Nexioo Demand</span>
+
             </a>
 
             <!-- Botão + Criar Azul na Topbar -->
@@ -40,26 +41,15 @@
             </button>
         </div>
 
-        <!-- Lado Direito: Pesquisa + Avatar -->
+        <!-- Lado Direito: Avatar -->
         <div class="topbar-right">
-            <div class="search-form" role="search">
-                <div class="search-input-wrapper">
-                    <span class="search-icon" aria-hidden="true">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                    </span>
-                    <input type="search" class="search-input" placeholder="Pesquisar..." autocomplete="off">
-                </div>
-            </div>
-
-            <div class="user-avatar-wrapper" title="Usuário logado: Samuel Oliveira">
-                <div class="user-avatar" aria-label="Perfil do usuário: SP">
+            <div class="user-avatar-wrapper" title="Usuário logado">
+                <div class="user-avatar" aria-label="Perfil do usuário">
                     <span>SP</span>
                 </div>
             </div>
         </div>
+
     </div>
 </header>
 
@@ -104,10 +94,10 @@
             <!-- Seção Áreas de trabalho -->
             <div class="sidebar-section-title">Áreas de trabalho</div>
 
-            <a th:href="@{/}" class="workspace-menu-item">
+            <a th:href="@{/quadro}" class="workspace-menu-item">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span class="workspace-icon-badge">Á</span>
-                    <span>Área de trabalho do Trello</span>
+                    <span>Área de trabalho Nexioo Demand</span>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -132,23 +122,22 @@
             <div class="projects-grid">
                 <!-- Card de Projeto Recente -->
                 <a th:each="p : ${recentes}"
-                   th:href="@{/}"
+                   th:href="@{/quadro}"
                    class="project-card"
                    th:style="'background: ' + ${p.gradiente} + ';'">
-                    <h3 class="project-card-title" th:text="${p.nome}">Meu quadro do Trello</h3>
-                    <div class="project-card-footer">
-                        <span class="project-card-meta" th:text="${p.membrosCount} + ' membros'">3 membros</span>
-                    </div>
+                    <h3 class="project-card-title" th:text="${p.nome}">Quadro Nexioo Demand</h3>
                 </a>
             </div>
         </section>
 
         <!-- ── Seção 2: SUAS ÁREAS DE TRABALHO / MEUS PROJETOS ───────────────── -->
         <section aria-labelledby="section-workspace-title">
+            <div style="font-size: 13px; font-weight: 700; color: #b6c2cf; letter-spacing: 0.5px; margin-bottom: 16px; text-transform: uppercase;">SUAS ÁREAS DE TRABALHO</div>
+
             <div class="workspace-header-row">
                 <div class="workspace-title-group" id="section-workspace-title">
                     <span class="workspace-icon-badge" style="width: 32px; height: 32px; font-size: 16px;">Á</span>
-                    <span class="workspace-title-text">Área de trabalho do Trello</span>
+                    <span class="workspace-title-text">Área de trabalho Nexioo Demand</span>
                 </div>
 
                 <!-- Abas de Navegação: Quadros | Membros | Configurações -->
@@ -182,21 +171,20 @@
 
                 <!-- Card de Projeto da Lista -->
                 <a th:each="p : ${projetos}"
-                   th:href="@{/}"
+                   th:href="@{/quadro}"
                    class="project-card"
                    th:style="'background: ' + ${p.gradiente} + ';'">
-                    <h3 class="project-card-title" th:text="${p.nome}">Meu quadro do Trello</h3>
-                    <div class="project-card-footer">
-                        <span class="project-card-meta" th:text="${p.membrosCount} + ' membros'">3 membros</span>
-                    </div>
+                    <h3 class="project-card-title" th:text="${p.nome}">Quadro Nexioo Demand</h3>
                 </a>
 
-                <!-- Card Ação: Criar Novo Quadro (Borda Tracejada Fiel à Referência) -->
+
+                <!-- Card Ação: Criar Novo Quadro -->
                 <div class="project-card-create" onclick="window.abrirModalCriarProjeto()">
                     <span class="project-card-create-text">Criar novo quadro</span>
                 </div>
 
             </div>
+
 
             <!-- Link/Botão Rodapé: Ver todos os quadros fechados -->
             <div style="margin-top: 24px;">
@@ -220,12 +208,13 @@
                     Cor de fundo
                 </label>
                 <div class="color-picker-grid">
-                    <div class="color-option is-selected" style="background: linear-gradient(135deg, #a855f7, #ec4899);" data-gradient="linear-gradient(135deg, #a855f7, #ec4899)" onclick="window.selecionarGradiente(this)"></div>
-                    <div class="color-option" style="background: linear-gradient(135deg, #0284c7, #06b6d4);" data-gradient="linear-gradient(135deg, #0284c7, #06b6d4)" onclick="window.selecionarGradiente(this)"></div>
-                    <div class="color-option" style="background: linear-gradient(135deg, #059669, #10b981);" data-gradient="linear-gradient(135deg, #059669, #10b981)" onclick="window.selecionarGradiente(this)"></div>
-                    <div class="color-option" style="background: linear-gradient(135deg, #d97706, #f59e0b);" data-gradient="linear-gradient(135deg, #d97706, #f59e0b)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #d946ef, #a855f7);" data-gradient="linear-gradient(135deg, #d946ef, #a855f7)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #00a3ff, #06b6d4);" data-gradient="linear-gradient(135deg, #00a3ff, #06b6d4)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option is-selected" style="background: linear-gradient(135deg, #10b981, #059669);" data-gradient="linear-gradient(135deg, #10b981, #059669)" onclick="window.selecionarGradiente(this)"></div>
+                    <div class="color-option" style="background: linear-gradient(135deg, #f59e0b, #d97706);" data-gradient="linear-gradient(135deg, #f59e0b, #d97706)" onclick="window.selecionarGradiente(this)"></div>
                 </div>
-                <input type="hidden" id="input-gradiente" name="gradiente" value="linear-gradient(135deg, #a855f7, #ec4899)">
+                <input type="hidden" id="input-gradiente" name="gradiente" value="linear-gradient(135deg, #10b981, #059669)">
+
             </div>
 
             <div class="form-group" style="margin-bottom: 16px;">

@@ -20,7 +20,11 @@ public class Demanda {
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
 
+    private boolean concluido = false;
+    private String imagemUrl;
+
     private List<Etiqueta> etiquetas = new ArrayList<>();
+
     private List<Checklist> checklists = new ArrayList<>();
     private List<String> membros = new ArrayList<>();
     private boolean acompanhando = false;
@@ -245,5 +249,29 @@ public class Demanda {
 
     public void setAtividades(List<ItemAtividade> atividades) {
         this.atividades = atividades;
+    }
+
+    public boolean isConcluido() {
+        return concluido;
+    }
+
+    public boolean isConcluida() {
+        return concluido;
+    }
+
+    public void setConcluido(boolean concluido) {
+        this.concluido = concluido;
+    }
+
+    public void setConcluida(boolean concluida) {
+        this.concluido = concluida;
+    }
+
+    public String getImagemUrl() {
+        return imagemUrl;
+    }
+
+    public void setImagemUrl(String imagemUrl) {
+        this.imagemUrl = imagemUrl;
     }
 }

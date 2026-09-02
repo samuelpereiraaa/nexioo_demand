@@ -50,11 +50,12 @@
             </button>
 
             <form id="form-add-lista"
-                  class="add-list-form is-hidden"
+                  class="add-list-form"
                   method="post"
                   th:action="@{/colunas}"
                   th:object="${colunaForm}"
                   novalidate>
+
                 <div class="add-list-input-wrapper">
                     <label class="sr-only" for="input-nome-lista">Nome da nova lista</label>
                     <input id="input-nome-lista"

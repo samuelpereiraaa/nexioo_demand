@@ -68,9 +68,10 @@
                       class="modal-toggle-form">
                     <button type="button"
                             class="btn-card-complete modal-complete-circle"
-                            th:classappend="${demanda.coluna != null and demanda.coluna.id == 'CONCLUIDO'} ? ' is-completed' : ''"
+                            th:classappend="${demanda.concluido} ? ' is-completed' : ''"
                             onclick="window.toggleConcluidoModal(this.form)"
                             title="Alternar conclusão">
+
                         <svg class="icon-circle-uncompleted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="9"></circle>
                         </svg>
@@ -186,7 +187,8 @@
                                     th:each="m : ${membrosSugeridos}"
                                     class="popover-item"
                                     th:text="${m}"
-                                    th:onclick="'window.adicionarMembroModal(\'' + ${m} + '\')'">
+                                    th:data-membro="${m}"
+                                    onclick="window.adicionarMembroModal(this.getAttribute('data-membro'))">
                                 Samuel Oliveira
                             </button>
                         </div>
@@ -215,7 +217,7 @@
                       class="applied-tag-badge"
                       th:style="'background-color:' + ${tag.corHex} + '22; border-color:' + ${tag.corHex} + '; color:' + ${tag.corHex} + ';'">
                     <span th:text="${tag.nome}">Frontend</span>
-                    <button type="button" class="btn-remove-tag" th:onclick="'window.removerEtiquetaModal(\'' + ${tag.id} + '\')'">✕</button>
+                    <button type="button" class="btn-remove-tag" th:data-tag-id="${tag.id}" onclick="window.removerEtiquetaModal(this.getAttribute('data-tag-id'))">✕</button>
                 </span>
             </div>
 
@@ -224,9 +226,10 @@
                 <span class="members-label">Membros:</span>
                 <span th:each="mb : ${demanda.membros}" class="member-chip">
                     <span th:text="${mb}">Samuel Oliveira</span>
-                    <button type="button" class="btn-remove-chip" th:onclick="'window.removerMembroModal(\'' + ${mb} + '\')'">✕</button>
+                    <button type="button" class="btn-remove-chip" th:data-membro="${mb}" onclick="window.removerMembroModal(this.getAttribute('data-membro'))">✕</button>
                 </span>
             </div>
+
 
             <!-- ── Seção Descrição Formatada ──────────────────────────────── -->
             <div class="modal-section-box">
@@ -272,6 +275,58 @@
                 </div>
             </div>
 
+            <!-- ── Seção Imagem Anexada ─────────────────────────────────── -->
+            <div class="modal-section-box">
+                <div class="modal-section-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <h2 class="modal-section-title">Imagem Anexada</h2>
+                </div>
+
+                <div th:if="${demanda.imagemUrl != null and !demanda.imagemUrl.isBlank()}" class="modal-image-preview-container">
+                    <img th:src="${demanda.imagemUrl}" alt="Imagem anexada" class="modal-attached-image-preview" style="max-width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--color-border);" />
+                    <div style="margin-top: 8px;">
+                        <button type="button" class="btn btn-perigo-dark btn-sm" onclick="window.removerImagemModal()">Remover imagem</button>
+                    </div>
+                </div>
+
+                <div th:if="${demanda.imagemUrl == null or demanda.imagemUrl.isBlank()}" class="modal-image-upload-container">
+                    <div class="image-upload-box" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 2px dashed var(--color-border); border-radius: 10px; background: rgba(255,255,255,0.02);">
+                        <!-- Opção 1: Upload de Arquivo Local -->
+
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <input type="file" id="input-modal-imagem-file" accept="image/*" style="display: none;" onchange="window.uploadImagemArquivoModal(this)" />
+                            <button type="button" class="btn btn-primario-destaque" onclick="document.getElementById('input-modal-imagem-file').click()" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <span>Escolher Imagem do Computador</span>
+                            </button>
+                            <span style="font-size: 12px; color: var(--color-text-secondary);">Formatos aceitos: PNG, JPG, JPEG, WEBP, GIF (máx. 10MB)</span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 10px; margin: 2px 0;">
+                            <div style="flex: 1; height: 1px; background: var(--color-border);"></div>
+                            <span style="font-size: 11px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">ou digite a URL</span>
+                            <div style="flex: 1; height: 1px; background: var(--color-border);"></div>
+                        </div>
+
+                        <!-- Opção 2: URL de Imagem -->
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="url" id="input-modal-imagem-url" class="popover-input-text" style="flex: 1;" placeholder="Cole a URL da imagem (https://...)...">
+                            <button type="button" class="btn btn-secundario btn-sm" onclick="window.adicionarImagemModal()">Anexar via URL</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
             <!-- ── Seção Checklists ───────────────────────────────────────── -->
             <div th:each="chk : ${demanda.checklists}" class="modal-section-box checklist-box">
                 <div class="modal-section-header flex-between">
@@ -286,9 +341,10 @@
                                th:attr="data-original-value=${chk.titulo}"
                                maxlength="120"
                                aria-label="Título da checklist"
-                               th:onblur="'window.renomearChecklistModal(' + ${chk.id} + ', this)'">
+                               th:data-chk-id="${chk.id}"
+                               onblur="window.renomearChecklistModal(this.getAttribute('data-chk-id'), this)">
                     </div>
-                    <button type="button" class="btn-subtle-sm danger-text" th:onclick="'window.removerChecklistModal(' + ${chk.id} + ')'">Excluir</button>
+                    <button type="button" class="btn-subtle-sm danger-text" th:data-chk-id="${chk.id}" onclick="window.removerChecklistModal(this.getAttribute('data-chk-id'))">Excluir</button>
                 </div>
 
                 <!-- Barra de Progresso -->
@@ -305,7 +361,9 @@
                         <input type="checkbox"
                                class="chk-item-checkbox"
                                th:checked="${item.concluido}"
-                               th:onchange="'window.toggleChecklistItemModal(' + ${chk.id} + ',' + ${item.id} + ')'">
+                               th:data-chk-id="${chk.id}"
+                               th:data-item-id="${item.id}"
+                               onchange="window.toggleChecklistItemModal(this.getAttribute('data-chk-id'), this.getAttribute('data-item-id'))">
                         <input type="text"
                                class="chk-item-text chk-item-edit-input"
                                th:classappend="${item.concluido} ? ' is-done' : ''"
@@ -313,8 +371,10 @@
                                th:attr="data-original-value=${item.texto}"
                                maxlength="240"
                                aria-label="Texto do item da checklist"
-                               th:onblur="'window.atualizarChecklistItemModal(' + ${chk.id} + ',' + ${item.id} + ', this)'">
-                        <button type="button" class="btn-remove-item" th:onclick="'window.removerChecklistItemModal(' + ${chk.id} + ',' + ${item.id} + ')'">✕</button>
+                               th:data-chk-id="${chk.id}"
+                               th:data-item-id="${item.id}"
+                               onblur="window.atualizarChecklistItemModal(this.getAttribute('data-chk-id'), this.getAttribute('data-item-id'), this)">
+                        <button type="button" class="btn-remove-item" th:data-chk-id="${chk.id}" th:data-item-id="${item.id}" onclick="window.removerChecklistItemModal(this.getAttribute('data-chk-id'), this.getAttribute('data-item-id'))">✕</button>
                     </div>
                 </div>
 
@@ -326,7 +386,7 @@
                            placeholder="Adicionar um item..."
                            maxlength="240"
                            th:attr="data-checklist-id=${chk.id}"/>
-                    <button type="button" class="btn btn-primario-destaque btn-sm" th:onclick="'window.adicionarItemChecklistModal(document.getElementById(\'input-item-chk-' + ${chk.id} + '\'), ' + ${chk.id} + ')'">Adicionar</button>
+                    <button type="button" class="btn btn-primario-destaque btn-sm" th:data-chk-id="${chk.id}" onclick="window.adicionarItemChecklistModal(document.getElementById('input-item-chk-' + this.getAttribute('data-chk-id')), this.getAttribute('data-chk-id'))">Adicionar</button>
                 </div>
             </div>
 

@@ -7,7 +7,7 @@
 
         <!-- ── Lado Esquerdo: Marca Monograma e Título do Quadro ───────────── -->
         <div class="topbar-left">
-            <a th:href="@{/}" class="brand" aria-label="Nexioo Demand — Ir para o quadro de demandas">
+            <a th:href="@{/projetos}" class="brand" aria-label="Nexioo Demand — Ir para os projetos">
                 <span class="brand-icon" aria-hidden="true">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="3" y="4" width="4" height="16" rx="1.5" fill="currentColor"/>
@@ -23,29 +23,10 @@
             </div>
         </div>
 
-        <!-- ── Lado Direito: Ações, Pesquisa, Avatar, Menu ─── -->
+        <!-- ── Lado Direito: Avatar ─── -->
         <div class="topbar-right">
 
-            <!-- Formulário de Pesquisa Integrado -->
-            <form method="get" th:action="@{/}" class="search-form" role="search">
-                <div class="search-input-wrapper">
-                    <span class="search-icon" aria-hidden="true">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                    </span>
-                    <input type="search"
-                           id="termo"
-                           name="termo"
-                           class="search-input"
-                           placeholder="Pesquisar demandas..."
-                           th:value="${filtroTermo}"
-                           autocomplete="off"
-                           aria-label="Pesquisar demandas no quadro">
-                    <a th:if="${temFiltro}" th:href="@{/}" class="search-clear" aria-label="Limpar filtro de pesquisa" title="Limpar pesquisa">✕</a>
-                </div>
-            </form>
+
 
             <!-- Avatar do Usuário -->
             <div class="user-avatar-wrapper" title="Usuário logado: Samuel Oliveira">

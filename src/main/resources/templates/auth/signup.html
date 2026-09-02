@@ -43,10 +43,15 @@
 <main class="auth-container">
     <div class="auth-card">
 
-        <!-- Circular Spinner Logo Badge -->
-        <div class="auth-logo-badge">
-            <div class="auth-logo-spinner"></div>
+        <!-- Circular Brand Logo Badge -->
+        <div class="auth-logo-badge" title="Nexioo Demand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="4" height="16" rx="1.5" fill="#38bdf8"/>
+                <rect x="10" y="4" width="4" height="11" rx="1.5" fill="#38bdf8" fill-opacity="0.85"/>
+                <rect x="17" y="4" width="4" height="6" rx="1.5" fill="#38bdf8" fill-opacity="0.6"/>
+            </svg>
         </div>
+
 
         <!-- Header Titles -->
         <h1 class="auth-title">Create Account</h1>
@@ -167,7 +172,7 @@
         banner.style.display = 'none';
 
         if (password !== confirmPassword) {
-            banner.textContent = 'Passwords do not match.';
+            banner.textContent = 'As senhas não coincidem.';
             banner.style.display = 'block';
             return;
         }
@@ -175,32 +180,34 @@
         btn.disabled = true;
         btn.innerHTML = '<span>Creating account...</span>';
 
-        window.supabaseAuth.signUp(email, password)
-            .then(function(data) {
-                if (data && data.session) {
-                    window.location.href = '/projetos';
-                } else {
-                    banner.style.background = 'rgba(34, 197, 94, 0.15)';
-                    banner.style.borderColor = 'rgba(34, 197, 94, 0.4)';
-                    banner.style.color = '#4ade80';
-                    banner.textContent = 'Conta criada com sucesso! Se a confirmação de e-mail estiver ativa no Supabase, confirme no seu e-mail ou desative a opção "Confirm email" no painel do Supabase.';
-                    banner.style.display = 'block';
-                }
-            })
-            .catch(function(err) {
-                banner.style.background = 'rgba(239, 68, 68, 0.12)';
-                banner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                banner.style.color = '#fca5a5';
-                banner.textContent = err.message || 'Error creating account.';
-                banner.style.display = 'block';
-            })
+        var params = new URLSearchParams();
+        params.append('email', email);
+        params.append('password', password);
 
-            .finally(function() {
-                btn.disabled = false;
-                btn.innerHTML = '<span>Sign up</span>';
-            });
+        fetch('/signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString()
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Erro ao criar conta.');
+            window.location.href = '/projetos';
+        })
+
+        .catch(function(err) {
+            banner.textContent = err.message || 'Erro ao criar conta.';
+            banner.style.display = 'block';
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Sign up</span>';
+        });
     }
 </script>
+
 
 </body>
 </html>

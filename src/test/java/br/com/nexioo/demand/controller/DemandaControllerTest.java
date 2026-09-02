@@ -1,5 +1,6 @@
 package br.com.nexioo.demand.controller;
 
+import br.com.nexioo.demand.config.AuthInterceptor;
 import br.com.nexioo.demand.config.StringToColunaConverter;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
@@ -18,7 +19,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -47,9 +51,10 @@ class DemandaControllerTest {
     }
 
     @Test
-    @DisplayName("GET /demandas/nova deve retornar o formulário de criação com status 200")
+    @DisplayName("GET /demandas/nova deve retornar o formulário de criação com status 200 quando autenticado")
     void deveExibirFormularioNovaDemanda() throws Exception {
-        mockMvc.perform(get("/demandas/nova"))
+        mockMvc.perform(get("/demandas/nova")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("demanda/form"))
                 .andExpect(model().attributeExists("demandaForm"))
@@ -57,23 +62,25 @@ class DemandaControllerTest {
     }
 
     @Test
-    @DisplayName("POST /demandas com dados válidos deve criar e redirecionar para o quadro")
+    @DisplayName("POST /demandas com dados válidos deve criar e redirecionar para o quadro quando autenticado")
     void deveCriarDemandaERedirecionarParaQuadro() throws Exception {
         Demanda demandaCriada = demandaFake(1L, "Nova tarefa de teste");
         when(demandaService.criar(any())).thenReturn(demandaCriada);
 
         mockMvc.perform(post("/demandas")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
                         .param("titulo", "Nova tarefa de teste")
                         .param("coluna", "BACKLOG")
                         .param("prioridade", "MEDIA"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/"));
+                .andExpect(redirectedUrl("/quadro"));
     }
 
     @Test
-    @DisplayName("POST /demandas com título vazio deve retornar formulário com erros de validação")
+    @DisplayName("POST /demandas com título vazio deve retornar formulário com erros de validação quando autenticado")
     void deveRetornarFormularioComErrosDeTituloVazio() throws Exception {
         mockMvc.perform(post("/demandas")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
                         .param("titulo", "")
                         .param("coluna", "BACKLOG")
                         .param("prioridade", "MEDIA"))
@@ -84,9 +91,10 @@ class DemandaControllerTest {
     }
 
     @Test
-    @DisplayName("POST /demandas sem prioridade deve retornar formulário com erro de validação")
+    @DisplayName("POST /demandas sem prioridade deve retornar formulário com erro de validação quando autenticado")
     void deveRetornarFormularioComErroDePrioridadeAusente() throws Exception {
         mockMvc.perform(post("/demandas")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
                         .param("titulo", "Título válido")
                         .param("coluna", "BACKLOG"))
                 .andExpect(status().isOk())
@@ -95,52 +103,132 @@ class DemandaControllerTest {
     }
 
     @Test
-    @DisplayName("GET /demandas/{id} deve exibir os detalhes da demanda")
+    @DisplayName("GET /demandas/{id} deve exibir os detalhes da demanda quando autenticado")
     void deveExibirDetalhesDaDemanda() throws Exception {
         Demanda demanda = demandaFake(1L, "Tarefa de detalhe");
         when(demandaService.buscarPorId(1L)).thenReturn(demanda);
 
-        mockMvc.perform(get("/demandas/1"))
+        mockMvc.perform(get("/demandas/1")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("demanda/detalhe"))
                 .andExpect(model().attributeExists("demanda"));
     }
 
     @Test
-    @DisplayName("GET /demandas/{id}/excluir deve exibir a tela de confirmação")
+    @DisplayName("GET /demandas/{id}/excluir deve exibir a tela de confirmação quando autenticado")
     void deveExibirTelaDeConfirmacaoDeExclusao() throws Exception {
         Demanda demanda = demandaFake(1L, "Tarefa a excluir");
         when(demandaService.buscarPorId(1L)).thenReturn(demanda);
 
-        mockMvc.perform(get("/demandas/1/excluir"))
+        mockMvc.perform(get("/demandas/1/excluir")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("demanda/confirmar-exclusao"))
                 .andExpect(model().attributeExists("demanda"));
     }
 
     @Test
-    @DisplayName("POST /demandas/{id}/status deve alterar coluna e redirecionar para o quadro")
+    @DisplayName("POST /demandas/{id}/status deve alterar coluna e redirecionar para o quadro quando autenticado")
     void deveAlterarStatusERedirecionar() throws Exception {
         mockMvc.perform(post("/demandas/1/status")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
                         .param("coluna", "CONCLUIDO"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/"));
+                .andExpect(redirectedUrl("/quadro"));
     }
 
     @Test
-    @DisplayName("POST /demandas/{id}/toggle-concluido deve alternar conclusão e redirecionar")
+    @DisplayName("POST /demandas/{id}/toggle-concluido deve alternar conclusão e redirecionar quando autenticado")
     void deveAlternarConclusaoERedirecionar() throws Exception {
         Demanda demanda = demandaFake(1L, "Tarefa para concluir");
         demanda.setColuna(Coluna.CONCLUIDO);
         when(demandaService.alternarConclusao(1L)).thenReturn(demanda);
 
-        mockMvc.perform(post("/demandas/1/toggle-concluido"))
+        mockMvc.perform(post("/demandas/1/toggle-concluido")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/"));
+                .andExpect(redirectedUrl("/quadro"));
     }
 
+    @Test
+    @DisplayName("POST /demandas/compositor com dados válidos deve criar cartão e retornar fragmento quando autenticado")
+    void deveCriarCartaoPeloCompositor() throws Exception {
+        Demanda demandaCriada = demandaFake(2L, "Demanda rápida compositor");
+        when(demandaService.criar(any())).thenReturn(demandaCriada);
 
-    // ── Helper ──────────────────────────────────────────────────────────────
+        mockMvc.perform(post("/demandas/compositor")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
+                        .param("titulo", "Demanda rápida compositor")
+                        .param("coluna", "BACKLOG")
+                        .param("prioridade", "MEDIA"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/cartao :: cartao"))
+                .andExpect(model().attributeExists("demanda"));
+    }
+
+    @Test
+    @DisplayName("GET /demandas/{id}/modal deve retornar fragmento do modal quando autenticado")
+    void deveRetornarFragmentoDoModal() throws Exception {
+        Demanda demanda = demandaFake(1L, "Demanda modal");
+        when(demandaService.buscarPorId(1L)).thenReturn(demanda);
+
+        mockMvc.perform(get("/demandas/1/modal")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/modal-detalhe :: modalDetalheConteudo"))
+                .andExpect(model().attributeExists("demanda"));
+    }
+
+    @Test
+    @DisplayName("POST /demandas/{id}/descricao deve atualizar descrição e retornar fragmento do modal")
+    void deveAtualizarDescricao() throws Exception {
+        Demanda demanda = demandaFake(1L, "Demanda com descrição");
+        demanda.setDescricao("Nova descrição detalhada");
+        when(demandaService.atualizarDescricao(eq(1L), anyString())).thenReturn(demanda);
+
+        mockMvc.perform(post("/demandas/1/descricao")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
+                        .param("descricao", "Nova descrição detalhada"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/modal-detalhe :: modalDetalheConteudo"))
+                .andExpect(model().attributeExists("demanda"));
+    }
+
+    @Test
+    @DisplayName("POST /demandas/{id}/comentar deve adicionar comentário e retornar fragmento do modal")
+    void deveAdicionarComentario() throws Exception {
+        Demanda demanda = demandaFake(1L, "Demanda com comentário");
+        when(demandaService.adicionarComentario(eq(1L), anyString(), anyString())).thenReturn(demanda);
+
+        mockMvc.perform(post("/demandas/1/comentar")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
+                        .param("texto", "Este é um comentário de teste"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/modal-detalhe :: modalDetalheConteudo"))
+                .andExpect(model().attributeExists("demanda"));
+    }
+
+    @Test
+    @DisplayName("POST /demandas/{id}/imagem e /imagem/remover devem gerenciar anexo de imagem")
+    void deveAdicionarERemoverImagemController() throws Exception {
+        Demanda demanda = demandaFake(1L, "Demanda com imagem");
+        demanda.setImagemUrl("https://exemplo.com/imagem.png");
+        when(demandaService.adicionarImagem(eq(1L), anyString())).thenReturn(demanda);
+        when(demandaService.removerImagem(1L)).thenReturn(demanda);
+
+        mockMvc.perform(post("/demandas/1/imagem")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
+                        .param("imagemUrl", "https://exemplo.com/imagem.png"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/modal-detalhe :: modalDetalheConteudo"));
+
+        mockMvc.perform(post("/demandas/1/imagem/remover")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("fragments/modal-detalhe :: modalDetalheConteudo"));
+    }
+
 
     private Demanda demandaFake(Long id, String titulo) {
         Demanda d = new Demanda();
