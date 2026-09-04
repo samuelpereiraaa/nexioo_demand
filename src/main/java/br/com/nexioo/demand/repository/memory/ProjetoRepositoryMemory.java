@@ -39,6 +39,17 @@ public class ProjetoRepositoryMemory implements ProjetoRepository {
     }
 
     @Override
+    public List<Projeto> listarPorArea(Long areaTrabalhoId) {
+        if (areaTrabalhoId == null) {
+            return listarTodos();
+        }
+        return armazenamento.values().stream()
+                .filter(p -> p.getAreaTrabalhoId() == null || p.getAreaTrabalhoId().equals(areaTrabalhoId))
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
     public List<Projeto> listarRecentes() {
         return armazenamento.values().stream()
                 .filter(Projeto::isRecentementeVisualizado)

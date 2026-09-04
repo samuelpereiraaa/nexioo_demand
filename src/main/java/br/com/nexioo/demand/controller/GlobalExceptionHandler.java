@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Tratamento centralizado de exceções.
  * Suporta respostas amigáveis para navegação tradicional (HTML)
@@ -18,11 +21,15 @@ import javax.servlet.http.HttpServletResponse;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(DemandaNaoEncontradaException.class)
     public Object demandaNaoEncontrada(DemandaNaoEncontradaException ex, HttpServletRequest request, HttpServletResponse response, Model model) {
+        log.warn("Demanda não encontrada: {}", ex.getMessage());
         if (isAjax(request)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
         }
+
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         model.addAttribute("titulo", "Demanda não encontrada");
         model.addAttribute("mensagem", ex.getMessage());
@@ -42,10 +49,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Object erroGenerico(Exception ex, HttpServletRequest request, HttpServletResponse response, Model model) {
+        log.error("Exceção não tratada em {}: ", request.getRequestURI(), ex);
         if (isAjax(request)) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ocorreu um erro ao processar a solicitação.");
         }
+
         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         model.addAttribute("titulo", "Erro inesperado");
         model.addAttribute("mensagem",

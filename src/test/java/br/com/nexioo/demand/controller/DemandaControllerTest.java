@@ -23,9 +23,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 
 @WebMvcTest(DemandaController.class)
 @Import(StringToColunaConverter.class)
@@ -228,6 +230,19 @@ class DemandaControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("fragments/modal-detalhe :: modalDetalheConteudo"));
     }
+
+    @Test
+    @DisplayName("DELETE e POST /demandas/{id}/api devem excluir demanda via API com sucesso (200 OK)")
+    void deveExcluirDemandaViaApi() throws Exception {
+        mockMvc.perform(delete("/demandas/1/api")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/demandas/1/api")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com"))
+                .andExpect(status().isOk());
+    }
+
 
 
     private Demanda demandaFake(Long id, String titulo) {

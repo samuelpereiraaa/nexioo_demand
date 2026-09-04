@@ -33,6 +33,10 @@ class QuadroControllerTest {
     @MockBean
     private ColunaService colunaService;
 
+    @MockBean
+    private br.com.nexioo.demand.service.ProjetoService projetoService;
+
+
     @Test
     @DisplayName("GET / deve redirecionar para /login com status 302")
     void deveRedirecionarRaizParaLogin() throws Exception {

@@ -28,7 +28,6 @@
                     </svg>
                 </span>
                 <span class="brand-text">Nexioo Demand</span>
-
             </a>
 
             <!-- Botão + Criar Azul na Topbar -->
@@ -41,13 +40,18 @@
             </button>
         </div>
 
-        <!-- Lado Direito: Avatar -->
+        <!-- Lado Direito: Avatar Dinâmico + Botão Sair Sofisticado -->
         <div class="topbar-right">
-            <div class="user-avatar-wrapper" title="Usuário logado">
-                <div class="user-avatar" aria-label="Perfil do usuário">
-                    <span>SP</span>
+            <div class="user-avatar-wrapper" th:title="'Usuário logado: ' + ${usuarioLogadoNome}">
+                <div class="user-avatar" th:attr="aria-label='Perfil do usuário: ' + ${usuarioIniciais}">
+                    <span th:text="${usuarioIniciais}">SP</span>
                 </div>
             </div>
+
+            <!-- Botão Sair Sofisticado em Preto -->
+            <button type="button" id="btn-topbar-auth" class="btn-topbar-logout" data-logged="true" onclick="window.location.href='/logout'" title="Sair do sistema">
+                Sair
+            </button>
         </div>
 
     </div>
@@ -71,38 +75,45 @@
                 <span>Quadros</span>
             </a>
 
-            <!-- Item 2: Templates -->
-            <a href="#" class="sidebar-nav-item" onclick="event.preventDefault();">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M15 3h6v6"></path>
-                    <path d="M10 14L21 3"></path>
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                </svg>
-                <span>Templates</span>
-            </a>
-
-            <!-- Item 3: Início -->
-            <a href="#" class="sidebar-nav-item" onclick="event.preventDefault();">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                </svg>
-                <span>Início</span>
-            </a>
-
             <div class="sidebar-divider"></div>
 
-            <!-- Seção Áreas de trabalho -->
-            <div class="sidebar-section-title">Áreas de trabalho</div>
+            <!-- Seção Áreas de trabalho com Botão + para Criar -->
+            <div class="sidebar-section-header" style="display: flex; align-items: center; justify-content: space-between; padding: 0 12px; margin-bottom: 8px;">
+                <span class="sidebar-section-title" style="margin: 0; font-size: 11px; font-weight: 700; color: #9fedc7; letter-spacing: 0.5px; text-transform: uppercase;">Áreas de trabalho</span>
+                <button type="button" class="btn-add-workspace-trigger" onclick="window.toggleFormCriarArea()" title="Criar área de trabalho" style="background: none; border: none; color: #9fedc7; cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1; font-weight: bold;">+</button>
+            </div>
 
-            <a th:href="@{/quadro}" class="workspace-menu-item">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="workspace-icon-badge">Á</span>
-                    <span>Área de trabalho Nexioo Demand</span>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </a>
+            <!-- Formulário inline no mesmo local para criar área -->
+            <div id="form-criar-area-container" style="display: none; padding: 6px 12px 12px 12px; background: rgba(255,255,255,0.03); border-radius: 6px; margin: 0 8px 10px 8px;">
+                <form id="form-criar-area" onsubmit="window.salvarNovaArea(event)">
+                    <label for="input-nova-area-nome" style="display: block; font-size: 11.5px; color: #9fedc7; font-weight: 600; margin-bottom: 4px;">Nova Área de Trabalho</label>
+                    <input type="text" id="input-nova-area-nome" name="nome" placeholder="Digite o nome..." required
+                           style="width: 100%; padding: 6px 10px; background: #1d2125; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 13px; margin-bottom: 8px; box-sizing: border-box;"
+                           autocomplete="off">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="submit" id="btn-submit-criar-area" style="padding: 4px 10px; background: #22c55e; border: none; border-radius: 4px; color: #0f1412; font-weight: 700; font-size: 12px; cursor: pointer;">Salvar</button>
+                        <button type="button" onclick="window.fecharFormCriarArea()" style="padding: 4px 8px; background: transparent; border: none; color: #b6c2cf; font-size: 12px; cursor: pointer;">Cancelar</button>
+                    </div>
+                    <div id="erro-criar-area" style="color: #f87171; font-size: 11px; margin-top: 4px; display: none;"></div>
+                </form>
+            </div>
+
+            <!-- Lista de Áreas de Trabalho do Usuário -->
+            <div class="workspaces-list" id="workspaces-list-container">
+                <a th:each="area : ${areas}"
+                   th:href="@{/projetos(areaId=${area.id})}"
+                   class="workspace-menu-item"
+                   th:classappend="${area.id == areaAtualId} ? ' is-active' : ''"
+                   th:data-area-id="${area.id}">
+                    <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                        <span class="workspace-icon-badge" th:text="${area.inicial}">Á</span>
+                        <span th:text="${area.nome}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Área de trabalho Nexioo Demand</span>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </a>
+            </div>
         </nav>
     </aside>
 
@@ -110,7 +121,7 @@
     <main class="projects-main-content">
 
         <!-- ── Seção 1: Visualizado recentemente ───────────────────────────── -->
-        <section aria-labelledby="section-recentes-title">
+        <section aria-labelledby="section-recentes-title" th:if="${!#lists.isEmpty(recentes)}">
             <div class="projects-section-header" id="section-recentes-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -122,7 +133,7 @@
             <div class="projects-grid">
                 <!-- Card de Projeto Recente -->
                 <a th:each="p : ${recentes}"
-                   th:href="@{/quadro}"
+                   th:href="@{/quadro(projetoId=${p.id})}"
                    class="project-card"
                    th:style="'background: ' + ${p.gradiente} + ';'">
                     <h3 class="project-card-title" th:text="${p.nome}">Quadro Nexioo Demand</h3>
@@ -136,11 +147,11 @@
 
             <div class="workspace-header-row">
                 <div class="workspace-title-group" id="section-workspace-title">
-                    <span class="workspace-icon-badge" style="width: 32px; height: 32px; font-size: 16px;">Á</span>
-                    <span class="workspace-title-text">Área de trabalho Nexioo Demand</span>
+                    <span class="workspace-icon-badge" style="width: 32px; height: 32px; font-size: 16px;" th:text="${areaAtual.inicial}">Á</span>
+                    <span class="workspace-title-text" th:text="${areaAtual.nome}">Área de trabalho Nexioo Demand</span>
                 </div>
 
-                <!-- Abas de Navegação: Quadros | Membros | Configurações -->
+                <!-- Abas e Ações da Área -->
                 <div class="workspace-tabs">
                     <button type="button" class="workspace-tab-btn is-active">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -149,19 +160,21 @@
                         </svg>
                         <span>Quadros</span>
                     </button>
-                    <button type="button" class="workspace-tab-btn">
+                    <!-- Editar / Renomear Área -->
+                    <button type="button" class="workspace-tab-btn" onclick="window.editarAreaAtual()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
-                        <span>Membros</span>
+                        <span>Renomear</span>
                     </button>
-                    <button type="button" class="workspace-tab-btn">
+                    <!-- Excluir Área -->
+                    <button th:if="${areas.size() > 1}" type="button" class="workspace-tab-btn" onclick="window.excluirAreaAtual()" style="color: #f87171;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         </svg>
-                        <span>Configurações</span>
+                        <span>Excluir</span>
                     </button>
                 </div>
             </div>
@@ -171,12 +184,11 @@
 
                 <!-- Card de Projeto da Lista -->
                 <a th:each="p : ${projetos}"
-                   th:href="@{/quadro}"
+                   th:href="@{/quadro(projetoId=${p.id})}"
                    class="project-card"
                    th:style="'background: ' + ${p.gradiente} + ';'">
                     <h3 class="project-card-title" th:text="${p.nome}">Quadro Nexioo Demand</h3>
                 </a>
-
 
                 <!-- Card Ação: Criar Novo Quadro -->
                 <div class="project-card-create" onclick="window.abrirModalCriarProjeto()">
@@ -184,7 +196,6 @@
                 </div>
 
             </div>
-
 
             <!-- Link/Botão Rodapé: Ver todos os quadros fechados -->
             <div style="margin-top: 24px;">
@@ -202,6 +213,7 @@
     <div class="project-modal-dialog">
         <h2 class="project-modal-title">Criar novo quadro</h2>
         <form method="post" th:action="@{/projetos}" th:object="${projetoForm}">
+            <input type="hidden" name="areaTrabalhoId" th:value="${areaAtual.id}">
             
             <div class="form-group" style="margin-bottom: 16px;">
                 <label style="display: block; font-size: 13px; font-weight: 600; color: #b6c2cf; margin-bottom: 6px;">
@@ -214,7 +226,6 @@
                     <div class="color-option" style="background: linear-gradient(135deg, #f59e0b, #d97706);" data-gradient="linear-gradient(135deg, #f59e0b, #d97706)" onclick="window.selecionarGradiente(this)"></div>
                 </div>
                 <input type="hidden" id="input-gradiente" name="gradiente" value="linear-gradient(135deg, #10b981, #059669)">
-
             </div>
 
             <div class="form-group" style="margin-bottom: 16px;">
@@ -227,7 +238,7 @@
                        class="form-control"
                        placeholder="Insira o título do quadro..."
                        required
-                       style="width: 100%; padding: 8px 12px; background: #1d2125; border: 1px solid var(--border-subtle); border-radius: 6px; color: #ffffff; font-size: 14px;">
+                       style="width: 100%; padding: 8px 12px; background: #1d2125; border: 1px solid var(--border-subtle); border-radius: 6px; color: #ffffff; font-size: 14px; box-sizing: border-box;">
             </div>
 
             <div class="form-group" style="margin-bottom: 24px;">
@@ -239,7 +250,7 @@
                           rows="2"
                           class="form-control"
                           placeholder="Adicione uma breve descrição..."
-                          style="width: 100%; padding: 8px 12px; background: #1d2125; border: 1px solid var(--border-subtle); border-radius: 6px; color: #ffffff; font-size: 14px; resize: vertical;"></textarea>
+                          style="width: 100%; padding: 8px 12px; background: #1d2125; border: 1px solid var(--border-subtle); border-radius: 6px; color: #ffffff; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 8px;">
@@ -257,7 +268,11 @@
     </div>
 </div>
 
-<script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var areaAtualId = /*[[${areaAtual.id}]]*/ 1;
+    var areaAtualNome = /*[[${areaAtual.nome}]]*/ 'Área de trabalho Nexioo Demand';
+
     window.abrirModalCriarProjeto = function() {
         var modal = document.getElementById('modal-criar-projeto');
         if (modal) {
@@ -285,6 +300,123 @@
         var input = document.getElementById('input-gradiente');
         if (input) input.value = grad;
     };
+
+    window.toggleFormCriarArea = function() {
+        var container = document.getElementById('form-criar-area-container');
+        if (!container) return;
+        if (container.style.display === 'none' || !container.style.display) {
+            container.style.display = 'block';
+            var inp = document.getElementById('input-nova-area-nome');
+            if (inp) {
+                inp.value = '';
+                setTimeout(function() { inp.focus(); }, 50);
+            }
+            var errEl = document.getElementById('erro-criar-area');
+            if (errEl) errEl.style.display = 'none';
+        } else {
+            container.style.display = 'none';
+        }
+    };
+
+    window.fecharFormCriarArea = function() {
+        var container = document.getElementById('form-criar-area-container');
+        if (container) container.style.display = 'none';
+    };
+
+    window.salvarNovaArea = function(e) {
+        e.preventDefault();
+        var inp = document.getElementById('input-nova-area-nome');
+        var errEl = document.getElementById('erro-criar-area');
+        var submitBtn = document.getElementById('btn-submit-criar-area');
+        if (!inp) return;
+        var nome = inp.value.trim();
+        if (!nome) {
+            if (errEl) {
+                errEl.textContent = 'O nome da área é obrigatório.';
+                errEl.style.display = 'block';
+            }
+            return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        var params = new URLSearchParams();
+        params.append('nome', nome);
+
+        fetch('/areas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString()
+        })
+        .then(function(res) {
+            return res.json().then(function(data) {
+                if (!res.ok) throw new Error(data.mensagem || 'Erro ao criar área de trabalho.');
+                return data;
+            });
+        })
+        .then(function(data) {
+            window.location.href = '/projetos?areaId=' + data.id;
+        })
+        .catch(function(err) {
+            if (errEl) {
+                errEl.textContent = err.message || 'Erro ao salvar.';
+                errEl.style.display = 'block';
+            }
+        })
+        .finally(function() {
+            if (submitBtn) submitBtn.disabled = false;
+        });
+    };
+
+    window.editarAreaAtual = function() {
+        var novoNome = prompt('Novo nome para a área de trabalho:', areaAtualNome);
+        if (!novoNome || !novoNome.trim() || novoNome.trim() === areaAtualNome) return;
+
+        var params = new URLSearchParams();
+        params.append('nome', novoNome.trim());
+
+        fetch('/areas/' + areaAtualId + '/editar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: params.toString()
+        })
+        .then(function(res) {
+            return res.json().then(function(data) {
+                if (!res.ok) throw new Error(data.mensagem || 'Erro ao renomear área.');
+                return data;
+            });
+        })
+        .then(function() {
+            window.location.href = '/projetos?areaId=' + areaAtualId;
+        })
+        .catch(function(err) {
+            alert(err.message || 'Erro ao renomear.');
+        });
+    };
+
+    window.excluirAreaAtual = function() {
+        if (!confirm('Deseja realmente excluir a área de trabalho "' + areaAtualNome + '"?')) return;
+
+        fetch('/areas/' + areaAtualId + '/excluir', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function(res) {
+            if (!res.ok) throw new Error('Não foi possível excluir a área.');
+            window.location.href = '/projetos';
+        })
+        .catch(function(err) {
+            alert(err.message || 'Erro ao excluir.');
+        });
+    };
+    /*]]>*/
 </script>
 
 <!-- Modal de Autenticação Supabase -->
@@ -292,4 +424,3 @@
 
 </body>
 </html>
-

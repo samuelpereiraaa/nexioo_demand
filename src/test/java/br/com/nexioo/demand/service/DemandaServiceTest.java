@@ -189,6 +189,34 @@ class DemandaServiceTest {
         assertThat(semImagem.getImagemUrl()).isNull();
     }
 
+    @Test
+    @DisplayName("deve gerenciar anexos com capa, renomeação e remoção individual")
+    void deveGerenciarAnexosCompletamente() {
+        Demanda demanda = demandaComColuna(Coluna.BACKLOG);
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(demanda));
+        when(demandaRepository.salvar(any(Demanda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Demanda comAnexo = demandaService.adicionarAnexo(1L, "Foto1.png", "https://exemplo.com/foto1.png");
+        assertThat(comAnexo.hasAnexos()).isTrue();
+        assertThat(comAnexo.getAnexos()).hasSize(1);
+        assertThat(comAnexo.getAnexos().get(0).isCapa()).isTrue();
+
+        String anexoId = comAnexo.getAnexos().get(0).getId();
+        demandaService.renomearAnexo(1L, anexoId, "FotoRenomeada.png");
+        assertThat(comAnexo.getAnexoById(anexoId).getNome()).isEqualTo("FotoRenomeada.png");
+
+        demandaService.definirCapaAnexo(1L, anexoId, false);
+        assertThat(comAnexo.hasCapa()).isFalse();
+
+        demandaService.definirCapaAnexo(1L, anexoId, true);
+        assertThat(comAnexo.hasCapa()).isTrue();
+
+        demandaService.removerAnexo(1L, anexoId);
+        assertThat(comAnexo.hasAnexos()).isFalse();
+        assertThat(comAnexo.hasCapa()).isFalse();
+    }
+
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
 

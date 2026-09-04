@@ -80,9 +80,9 @@ public class DemandaController {
         Demanda demanda = demandaService.criar(form);
         redirectAttributes.addFlashAttribute("mensagemSucesso",
                 "Demanda \"" + demanda.getTitulo() + "\" criada com sucesso.");
-        return "redirect:/quadro";
-
+        return "redirect:/quadro" + (form.getProjetoId() != null ? "?projetoId=" + form.getProjetoId() : "");
     }
+
 
     // ── Visualizar Fragmento de Modal (AJAX) ──────────────────────────────────
 
@@ -375,8 +375,17 @@ public class DemandaController {
     // ── Imagem (AJAX) ────────────────────────────────────────────────────────
 
     @PostMapping("/{id}/imagem")
-    public String adicionarImagem(@PathVariable Long id, @RequestParam String imagemUrl, Model model) {
-        Demanda demanda = demandaService.adicionarImagem(id, imagemUrl);
+    public String adicionarImagem(
+            @PathVariable Long id,
+            @RequestParam String imagemUrl,
+            @RequestParam(required = false) String nome,
+            Model model) {
+        Demanda demanda;
+        if (nome != null && !nome.isBlank()) {
+            demanda = demandaService.adicionarAnexo(id, nome, imagemUrl);
+        } else {
+            demanda = demandaService.adicionarImagem(id, imagemUrl);
+        }
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
     }
@@ -386,28 +395,89 @@ public class DemandaController {
             @PathVariable Long id,
             @RequestParam("arquivo") org.springframework.web.multipart.MultipartFile arquivo,
             Model model) {
+        Demanda demanda = null;
         if (arquivo != null && !arquivo.isEmpty()) {
             try {
+                String nomeOriginal = arquivo.getOriginalFilename();
                 String contentType = arquivo.getContentType();
                 byte[] bytes = arquivo.getBytes();
                 String base64 = java.util.Base64.getEncoder().encodeToString(bytes);
                 String dataUrl = "data:" + (contentType != null ? contentType : "image/png") + ";base64," + base64;
-                demandaService.adicionarImagem(id, dataUrl);
+                demanda = demandaService.adicionarAnexo(id, nomeOriginal, dataUrl);
             } catch (java.io.IOException e) {
                 log.error("Erro ao processar upload de imagem para demanda id {}", id, e);
             }
         }
-        Demanda demanda = demandaService.buscarPorId(id);
+        if (demanda == null) {
+            demanda = demandaService.buscarPorId(id);
+        }
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
     }
 
+
     @PostMapping("/{id}/imagem/remover")
-    public String removerImagem(@PathVariable Long id, Model model) {
-        Demanda demanda = demandaService.removerImagem(id);
+    public String removerImagem(
+            @PathVariable Long id,
+            @RequestParam(required = false) String imagemUrl,
+            @RequestParam(required = false) String anexoId,
+            Model model) {
+        Demanda demanda;
+        if (anexoId != null && !anexoId.isBlank()) {
+            demanda = demandaService.removerAnexo(id, anexoId);
+        } else if (imagemUrl != null && !imagemUrl.isBlank()) {
+            demanda = demandaService.removerImagemEspecifica(id, imagemUrl);
+        } else {
+            demanda = demandaService.removerImagem(id);
+        }
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
     }
+
+    @PostMapping("/{id}/anexos/remover")
+    public String removerAnexo(
+            @PathVariable Long id,
+            @RequestParam String anexoId,
+            Model model) {
+        Demanda demanda = demandaService.removerAnexo(id, anexoId);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/anexos/capa")
+    public String definirCapaAnexo(
+            @PathVariable Long id,
+            @RequestParam String anexoId,
+            @RequestParam boolean capa,
+            Model model) {
+        Demanda demanda = demandaService.definirCapaAnexo(id, anexoId, capa);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/anexos/renomear")
+    public String renomearAnexo(
+            @PathVariable Long id,
+            @RequestParam String anexoId,
+            @RequestParam String nome,
+            Model model) {
+        Demanda demanda = demandaService.renomearAnexo(id, anexoId, nome);
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    @PostMapping("/{id}/anexos/comentar")
+    public String comentarAnexo(
+            @PathVariable Long id,
+            @RequestParam String anexoId,
+            @RequestParam String texto,
+            Model model) {
+        Demanda demanda = demandaService.comentarAnexo(id, anexoId, texto, "Samuel Oliveira");
+        preencherModelModal(model, demanda);
+        return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+
 
 
 
@@ -429,13 +499,13 @@ public class DemandaController {
     }
 
 
-    @PostMapping("/{id}/api")
-    @DeleteMapping("/{id}/api")
+    @RequestMapping(value = "/{id}/api", method = {RequestMethod.POST, RequestMethod.DELETE})
     @ResponseBody
     public ResponseEntity<Void> excluirApi(@PathVariable Long id) {
         demandaService.excluir(id);
         return ResponseEntity.ok().build();
     }
+
 
 
     // ── Auxiliares Privados ──────────────────────────────────────────────────

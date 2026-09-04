@@ -66,6 +66,7 @@
      */
     function sincronizarCardDoServidor(demandaId) {
         return fetch('/demandas/' + demandaId + '/cartao')
+
             .then(function (res) {
                 if (!res.ok) throw new Error('Não foi possível sincronizar o cartão.');
                 return res.text();
@@ -105,6 +106,8 @@
                 return novoCard;
             });
     }
+    window.sincronizarCardDoServidor = sincronizarCardDoServidor;
+
 
     /**
      * Move o elemento HTML do cartão para a nova coluna no DOM sem recarregar.
@@ -226,6 +229,12 @@
      * Envia requisição AJAX e atualiza o conteúdo do modal.
      */
     function atualizarConteudoModalAjax(url, method, params, mensagemSucesso) {
+        if (!currentDetailId) {
+            var cardEl = document.querySelector('#modal-detail-dialog-content .modal-detail-card');
+            if (cardEl && cardEl.getAttribute('data-id')) {
+                currentDetailId = cardEl.getAttribute('data-id');
+            }
+        }
         if (!currentDetailId) return Promise.resolve();
 
         var dialog = document.getElementById('modal-detail-dialog-content');
@@ -233,40 +242,113 @@
 
         var options = {
             method: method || 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         };
-        if (params) {
+
+        if (params instanceof FormData) {
+            options.body = params;
+        } else if (params) {
+            options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
             options.body = params.toString();
         }
 
         return fetch(url, options)
             .then(function (res) {
-                if (!res.ok) throw new Error('Ocorreu um erro na requisição.');
+                if (!res.ok) {
+                    return res.text().then(function (body) {
+                        console.error('Falha na requisição AJAX:', {
+                            metodo: method || 'POST',
+                            url: url,
+                            status: res.status,
+                            resposta: body
+                        });
+                        throw new Error('Ocorreu um erro na requisição (' + res.status + ').');
+                    });
+                }
                 return res.text();
             })
+
             .then(function (html) {
+                var mainCol = dialog.querySelector('.modal-detail-main') || dialog.querySelector('.modal-detail-main-col');
+                var currentMainScrollTop = mainCol ? mainCol.scrollTop : 0;
+                var sidebarCol = dialog.querySelector('.modal-detail-sidebar') || dialog.querySelector('.modal-detail-sidebar-col');
+                var currentSidebarScrollTop = sidebarCol ? sidebarCol.scrollTop : 0;
+                var modalBody = dialog.querySelector('.modal-detail-body');
+                var currentBodyScrollTop = modalBody ? modalBody.scrollTop : 0;
+
+                // Preservar valores digitados que o usuário ainda não salvou
+                var commentInput = dialog.querySelector('#input-novo-comentario');
+                var pendingComment = commentInput ? commentInput.value : '';
+                var isCommentAction = url.indexOf('/comentar') !== -1;
+
+                var descInput = dialog.querySelector('#modal-textarea-descricao');
+                var pendingDesc = descInput ? descInput.value : '';
+                var isDescAction = url.indexOf('/descricao') !== -1;
+
                 dialog.innerHTML = html;
+
+                // Restaurar scroll de ambas as colunas
+                var newMainCol = dialog.querySelector('.modal-detail-main') || dialog.querySelector('.modal-detail-main-col');
+                if (newMainCol && currentMainScrollTop) {
+                    newMainCol.scrollTop = currentMainScrollTop;
+                }
+                var newSidebarCol = dialog.querySelector('.modal-detail-sidebar') || dialog.querySelector('.modal-detail-sidebar-col');
+                if (newSidebarCol && currentSidebarScrollTop) {
+                    newSidebarCol.scrollTop = currentSidebarScrollTop;
+                }
+                var newModalBody = dialog.querySelector('.modal-detail-body');
+                if (newModalBody && currentBodyScrollTop) {
+                    newModalBody.scrollTop = currentBodyScrollTop;
+                }
+
+
+                // Restaurar comentário pendente se a ação não era de salvar comentário
+                if (pendingComment && !isCommentAction) {
+                    var newCommentInput = dialog.querySelector('#input-novo-comentario');
+                    if (newCommentInput) {
+                        newCommentInput.value = pendingComment;
+                        window.validarBotaoComentario(newCommentInput);
+                    }
+                }
+
+                // Restaurar descrição pendente se a ação não era de salvar descrição
+                if (pendingDesc && !isDescAction) {
+                    var newDescInput = dialog.querySelector('#modal-textarea-descricao');
+                    if (newDescInput) {
+                        newDescInput.value = pendingDesc;
+                    }
+                }
+
                 return sincronizarCardDoServidor(currentDetailId);
             })
+
             .then(function () {
                 if (mensagemSucesso) exibirToast(mensagemSucesso, 'sucesso');
             })
             .catch(function (err) {
+                console.error('Falha ao atualizar conteúdo da demanda:', err);
                 exibirToast(err.message || 'Erro ao atualizar demanda.', 'erro');
             });
     }
+
 
     /**
      * Gerenciador do Modal de Detalhes da Demanda
      */
     function iniciarModalDetalhes() {
+        var backdrop = document.getElementById('modal-detalhe-demanda');
+        var dialog = document.getElementById('modal-detail-dialog-content');
+
         window.abrirModalDetalheDemandas = function (target) {
-            var backdrop = document.getElementById('modal-detalhe-demanda');
-            var dialog = document.getElementById('modal-detail-dialog-content');
+            backdrop = document.getElementById('modal-detalhe-demanda');
+            dialog = document.getElementById('modal-detail-dialog-content');
             var board = document.getElementById('conteudo-quadro');
             var boardTrack = document.getElementById('board-columns-track');
 
             if (!backdrop || !dialog) return;
+
 
             var id = target;
             var targetCard = null;
@@ -339,8 +421,29 @@
         };
 
         document.addEventListener('keydown', function (e) {
+            var viewer = document.getElementById('image-viewer-lightbox');
+            if (viewer && !viewer.classList.contains('is-hidden')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.fecharVisualizadorImagem();
+                    return;
+                }
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    window.navegarVisualizadorImagem(-1);
+                    return;
+                }
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    window.navegarVisualizadorImagem(1);
+                    return;
+                }
+            }
+
             var backdrop = document.getElementById('modal-detalhe-demanda');
             var dialog = document.getElementById('modal-detail-dialog-content');
+
             if (e.key === 'Escape' && backdrop && backdrop.classList.contains('is-open')) {
                 if (dialog) {
                     var popoverAberto = dialog.querySelector('.popover-menu:not(.is-hidden)');
@@ -381,9 +484,8 @@
             }
         });
 
-        dialog.addEventListener('keydown', function (e) {
-
-            if (e.key === 'Enter' && e.target.matches('.chk-item-input')) {
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('.chk-item-input')) {
                 e.preventDefault();
                 window.adicionarItemChecklistModal(
                     e.target,
@@ -391,6 +493,7 @@
                 );
             }
         });
+
 
         // Fechar popovers ao clicar fora
         document.addEventListener('click', function (e) {
@@ -418,60 +521,128 @@
             window.togglePopover(id);
         };
 
+        // Utilitário para obter o ID da demanda atualmente aberta no modal
+        function obterDemandaIdAtual() {
+            if (currentDetailId) return String(currentDetailId);
+            var cardEl = document.querySelector('#modal-detail-dialog-content .modal-detail-card')
+                || document.querySelector('.modal-detail-card');
+            if (cardEl && cardEl.getAttribute('data-id')) {
+                currentDetailId = cardEl.getAttribute('data-id');
+                return String(currentDetailId);
+            }
+            var elWithData = document.querySelector('#modal-detail-dialog-content [data-demanda-id]')
+                || document.querySelector('[data-demanda-id]');
+            if (elWithData && elWithData.getAttribute('data-demanda-id')) {
+                currentDetailId = elWithData.getAttribute('data-demanda-id');
+                return String(currentDetailId);
+            }
+            return null;
+        }
+        window.obterDemandaIdAtual = obterDemandaIdAtual;
+
         // Funções de Ação no Modal
 
         window.salvarTituloModal = function (input) {
-            if (!currentDetailId || !input) return;
+            var id = obterDemandaIdAtual();
+
+            if (!id || !input) return;
             var titulo = input.value ? input.value.trim() : '';
             var original = input.getAttribute('data-original-value') || '';
             if (!titulo || titulo === original) return;
+            input.setAttribute('data-original-value', titulo);
             var params = new URLSearchParams();
             params.append('titulo', titulo);
             return atualizarConteudoModalAjax(
-                '/demandas/' + currentDetailId + '/titulo',
+                '/demandas/' + id + '/titulo',
                 'POST',
                 params,
                 'Título atualizado.'
             );
         };
 
-        window.salvarDescricaoModal = function () {
-            if (!currentDetailId) return;
-            var textarea = dialog.querySelector('#modal-textarea-descricao');
-            var desc = textarea ? textarea.value : '';
-            var params = new URLSearchParams();
-            params.append('descricao', desc);
-            return atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/descricao', 'POST', params, 'Descrição salva com sucesso.');
+        window.abrirEditorDescricaoModal = function () {
+            var wrapper = document.getElementById('editor-descricao-wrapper');
+            var viewMode = document.getElementById('modal-desc-view-mode');
+            var emptyPlaceholder = document.getElementById('modal-desc-empty-placeholder');
+            var btnEditar = document.getElementById('btn-editar-descricao');
+            var textarea = document.getElementById('modal-textarea-descricao');
+
+            if (viewMode) viewMode.style.display = 'none';
+            if (emptyPlaceholder) emptyPlaceholder.style.display = 'none';
+            if (btnEditar) btnEditar.style.display = 'none';
+            if (wrapper) {
+                wrapper.style.display = 'flex';
+                if (textarea) {
+                    setTimeout(function () {
+                        textarea.focus();
+                        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+                    }, 30);
+                }
+            }
+        };
+
+        window.fecharEditorDescricaoModal = function () {
+            var wrapper = document.getElementById('editor-descricao-wrapper');
+            var viewMode = document.getElementById('modal-desc-view-mode');
+            var emptyPlaceholder = document.getElementById('modal-desc-empty-placeholder');
+            var btnEditar = document.getElementById('btn-editar-descricao');
+            var textarea = document.getElementById('modal-textarea-descricao');
+
+            if (textarea) {
+                var original = textarea.getAttribute('data-original-value') || '';
+                textarea.value = original;
+            }
+
+            if (wrapper) wrapper.style.display = 'none';
+
+            var temTexto = textarea && textarea.value && textarea.value.trim().length > 0;
+            if (temTexto) {
+                if (viewMode) {
+                    viewMode.textContent = textarea.value;
+                    viewMode.style.display = '';
+                }
+                if (btnEditar) btnEditar.style.display = '';
+                if (emptyPlaceholder) emptyPlaceholder.style.display = 'none';
+            } else {
+                if (emptyPlaceholder) emptyPlaceholder.style.display = '';
+                if (viewMode) viewMode.style.display = 'none';
+                if (btnEditar) btnEditar.style.display = 'none';
+            }
         };
 
         window.restaurarDescricaoModal = function () {
-            if (currentDetailId) {
-                fetch('/demandas/' + currentDetailId + '/modal')
-                    .then(function (res) { return res.text(); })
-                    .then(function (html) { dialog.innerHTML = html; });
-            }
+            window.fecharEditorDescricaoModal();
         };
 
-        window.adicionarImagemModal = function () {
-            if (!currentDetailId) return;
-            var input = dialog.querySelector('#input-modal-imagem-url');
-            if (!input || !input.value.trim()) {
-                exibirToast('Informe a URL da imagem.', 'erro');
-                return;
+        window.salvarDescricaoModal = function (triggerBtn) {
+            var id = (triggerBtn && triggerBtn.getAttribute('data-demanda-id')) || obterDemandaIdAtual();
+            if (!id) {
+                console.error('salvarDescricaoModal: ID da demanda não encontrado.');
+                exibirToast('Não foi possível identificar o cartão.', 'erro');
+                return Promise.reject(new Error('ID da demanda não encontrado'));
             }
+            var textarea = document.getElementById('modal-textarea-descricao');
+            if (!textarea) {
+                console.error('salvarDescricaoModal: Campo #modal-textarea-descricao não encontrado.');
+                return Promise.reject(new Error('Campo de descrição não encontrado'));
+            }
+            var desc = textarea.value;
             var params = new URLSearchParams();
-            params.append('imagemUrl', input.value.trim());
-            return atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem', 'POST', params, 'Imagem anexada.');
-        };
-
-        window.removerImagemModal = function () {
-            if (!currentDetailId) return;
-            return atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem/remover', 'POST', null, 'Imagem removida.');
+            params.append('descricao', desc);
+            return atualizarConteudoModalAjax(
+                '/demandas/' + id + '/descricao',
+                'POST',
+                params,
+                'Descrição salva com sucesso.'
+            ).then(function () {
+                var el = document.getElementById('modal-textarea-descricao');
+                if (el) el.setAttribute('data-original-value', desc);
+            });
         };
 
 
         window.inserirFormatacao = function (tipo) {
-            var textarea = dialog.querySelector('#modal-textarea-descricao');
+            var textarea = document.getElementById('modal-textarea-descricao');
             if (!textarea) return;
             var start = textarea.selectionStart;
             var end = textarea.selectionEnd;
@@ -489,99 +660,197 @@
         };
 
         window.salvarCamposModal = function () {
-            if (!currentDetailId) return;
-            var selectPrioridade = dialog.querySelector('#modal-prop-prioridade');
+            var id = obterDemandaIdAtual();
+            if (!id) return;
+            var selectPrioridade = document.getElementById('modal-prop-prioridade');
             var params = new URLSearchParams();
             if (selectPrioridade) params.append('prioridade', selectPrioridade.value);
 
-            return atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/modal-update', 'POST', params, 'Prioridade atualizada.');
+            return atualizarConteudoModalAjax('/demandas/' + id + '/modal-update', 'POST', params, 'Prioridade atualizada.');
         };
 
+
         window.salvarColunaModal = function (form) {
-            if (!currentDetailId || !form) return;
+            var id = obterDemandaIdAtual();
+            if (!id || !form) return;
             var select = form.querySelector('select[name="coluna"]');
             var novaColuna = select ? select.value : null;
+            if (!novaColuna) return;
 
             var params = new URLSearchParams(new FormData(form));
-            return fetch(form.action, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString()
-            })
-            .then(function () {
-                if (!novaColuna) throw new Error('Selecione uma lista.');
-                return fetch('/demandas/' + currentDetailId + '/modal');
-            })
-            .then(function (res) { return res.text(); })
-            .then(function (html) {
-                dialog.innerHTML = html;
-                return sincronizarCardDoServidor(currentDetailId);
-            })
-            .then(function () {
-                exibirToast('Coluna atualizada!', 'sucesso');
-            })
-            .catch(function (err) {
-                exibirToast(err.message || 'Erro ao alterar a lista.', 'erro');
-            });
+            return atualizarConteudoModalAjax(form.action, 'POST', params, 'Coluna atualizada!');
         };
 
         window.toggleConcluidoModal = function (form) {
-            if (!currentDetailId || !form) return;
-            return fetch(form.action, { method: 'POST' })
-            .then(function () {
-                return fetch('/demandas/' + currentDetailId + '/modal');
-            })
-            .then(function (res) { return res.text(); })
-            .then(function (html) {
-                dialog.innerHTML = html;
-                return sincronizarCardDoServidor(currentDetailId);
-            })
-            .then(function () {
-                exibirToast('Status de conclusão alterado!', 'sucesso');
-            })
-            .catch(function (err) {
-                exibirToast(err.message || 'Erro ao alterar a conclusão.', 'erro');
-            });
+            var id = obterDemandaIdAtual();
+            if (!id || !form) return;
+            return atualizarConteudoModalAjax(form.action, 'POST', null, 'Status de conclusão alterado!');
         };
 
-        // Etiquetas
-        window.adicionarEtiquetaModal = function (nome, corHex) {
+
+        // ── Gestão Dinâmica de Etiquetas ──────────────────────────────────────────
+        window.__corEtiquetaSelecionada = '#00E6A8';
+
+        window.selecionarCorEtiqueta = function (cor, btn) {
+            window.__corEtiquetaSelecionada = cor;
+            var swatches = document.querySelectorAll('#container-cores-etiqueta .color-swatch');
+            swatches.forEach(function (s) {
+                s.style.border = '2px solid transparent';
+                s.classList.remove('is-selected');
+            });
+            if (btn) {
+                btn.style.border = '2px solid #fff';
+                btn.classList.add('is-selected');
+            }
+            var picker = document.getElementById('input-nova-etiqueta-colorpicker');
+            if (picker) picker.value = cor;
+            var hexInput = document.getElementById('input-nova-etiqueta-cor-hex');
+            if (hexInput) hexInput.value = cor.toUpperCase();
+            window.atualizarPreviewEtiqueta();
+        };
+
+        window.selecionarCorPersonalizada = function (hex) {
+            if (!hex) return;
+            if (!hex.startsWith('#')) hex = '#' + hex;
+            if (hex.length > 7) hex = hex.substring(0, 7);
+            window.__corEtiquetaSelecionada = hex;
+
+            var picker = document.getElementById('input-nova-etiqueta-colorpicker');
+            if (picker && /^#[0-9A-Fa-f]{6}$/.test(hex)) picker.value = hex;
+            var hexInput = document.getElementById('input-nova-etiqueta-cor-hex');
+            if (hexInput && hexInput.value !== hex) hexInput.value = hex.toUpperCase();
+
+            var swatches = document.querySelectorAll('#container-cores-etiqueta .color-swatch');
+            swatches.forEach(function (s) {
+                if (s.getAttribute('data-color') && s.getAttribute('data-color').toLowerCase() === hex.toLowerCase()) {
+                    s.style.border = '2px solid #fff';
+                    s.classList.add('is-selected');
+                } else {
+                    s.style.border = '2px solid transparent';
+                    s.classList.remove('is-selected');
+                }
+            });
+            window.atualizarPreviewEtiqueta();
+        };
+
+        window.atualizarPreviewEtiqueta = function () {
+            var input = document.getElementById('input-nova-etiqueta-nome');
+            var preview = document.getElementById('preview-nova-etiqueta');
+            if (!preview) return;
+            var nome = (input && input.value.trim()) ? input.value.trim() : 'Nome da etiqueta';
+            var cor = window.__corEtiquetaSelecionada || '#00E6A8';
+            preview.textContent = nome;
+            preview.style.color = cor;
+            preview.style.borderColor = cor;
+            preview.style.backgroundColor = cor + '22';
+        };
+
+        window.salvarNovaEtiquetaModal = function () {
+            var id = obterDemandaIdAtual();
+            if (!id) {
+                if (typeof exibirToast === 'function') exibirToast('Não foi possível identificar o cartão.', 'erro');
+                return;
+            }
+            var inputNome = document.getElementById('input-nova-etiqueta-nome');
+            if (!inputNome || !inputNome.value.trim()) {
+                if (typeof exibirToast === 'function') exibirToast('Digite o nome da etiqueta.', 'erro');
+                if (inputNome) inputNome.focus();
+                return;
+            }
+            var nome = inputNome.value.trim();
+
+            // Validação de duplicação no mesmo cartão
+            var badges = document.querySelectorAll('.tags-badges-row .applied-tag-badge span');
+            for (var i = 0; i < badges.length; i++) {
+                if (badges[i].textContent.trim().toLowerCase() === nome.toLowerCase()) {
+                    if (typeof exibirToast === 'function') exibirToast('Esta etiqueta já foi adicionada ao cartão.', 'erro');
+                    return;
+                }
+            }
+
+            var cor = window.__corEtiquetaSelecionada || '#00E6A8';
+            if (!/^#[0-9A-Fa-f]{3,6}$/.test(cor)) {
+                if (typeof exibirToast === 'function') exibirToast('Selecione uma cor hexadecimal válida.', 'erro');
+                return;
+            }
+
+            var btnCriar = document.getElementById('btn-criar-etiqueta');
+            if (btnCriar) {
+                if (btnCriar.disabled) return;
+                btnCriar.disabled = true;
+                btnCriar.textContent = 'Criando...';
+            }
+
             var params = new URLSearchParams();
             params.append('nome', nome);
-            params.append('corHex', corHex);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/etiquetas/adicionar', 'POST', params, 'Etiqueta adicionada.');
+            params.append('corHex', cor);
+
+            return atualizarConteudoModalAjax('/demandas/' + id + '/etiquetas/adicionar', 'POST', params, 'Etiqueta criada com sucesso!')
+                .then(function () {
+                    window.fecharTodosPopovers();
+                    if (inputNome) inputNome.value = '';
+                    window.sincronizarCardDoServidor(id);
+                })
+                .catch(function (err) {
+                    console.error('[Etiquetas] Erro ao criar etiqueta:', err);
+                    if (typeof exibirToast === 'function') exibirToast('Erro ao criar etiqueta.', 'erro');
+                })
+                .finally(function () {
+                    if (btnCriar) {
+                        btnCriar.disabled = false;
+                        btnCriar.textContent = 'Criar';
+                    }
+                });
         };
 
         window.removerEtiquetaModal = function (etiquetaId) {
+            var id = obterDemandaIdAtual();
+            if (!id || !etiquetaId) return;
+            if (!confirm('Deseja realmente remover esta etiqueta do cartão?')) return;
             var params = new URLSearchParams();
             params.append('etiquetaId', etiquetaId);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/etiquetas/remover', 'POST', params, 'Etiqueta removida.');
+            return atualizarConteudoModalAjax('/demandas/' + id + '/etiquetas/remover', 'POST', params, 'Etiqueta removida.')
+                .then(function () {
+                    window.sincronizarCardDoServidor(id);
+                })
+                .catch(function (err) {
+                    console.error('[Etiquetas] Erro ao remover etiqueta:', err);
+                    if (typeof exibirToast === 'function') exibirToast('Erro ao remover etiqueta.', 'erro');
+                });
         };
+
 
         // Datas
         window.salvarPrazoModal = function (prazo) {
+            var id = obterDemandaIdAtual();
+            if (!id) return;
             var params = new URLSearchParams();
             if (prazo) params.append('prazo', prazo);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/prazo', 'POST', params, 'Prazo atualizado.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/prazo', 'POST', params, 'Prazo atualizado.');
         };
 
         // Checklists
         window.adicionarChecklistModal = function () {
-            var input = dialog.querySelector('#input-titulo-checklist');
+            var id = obterDemandaIdAtual();
+            if (!id) return;
+            var input = document.getElementById('input-titulo-checklist');
             var titulo = input ? input.value : 'Checklist';
             var params = new URLSearchParams();
             params.append('titulo', titulo);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/checklists/adicionar', 'POST', params, 'Checklist criada.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/checklists/adicionar', 'POST', params, 'Checklist criada.');
         };
 
         window.removerChecklistModal = function (checklistId) {
+            var id = obterDemandaIdAtual();
+            if (!id) return;
             var params = new URLSearchParams();
             params.append('checklistId', checklistId);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/checklists/remover', 'POST', params, 'Checklist removida.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/checklists/remover', 'POST', params, 'Checklist removida.');
         };
 
         window.renomearChecklistModal = function (checklistId, input) {
-            if (!input) return;
+            var id = obterDemandaIdAtual();
+            if (!id || !input) return;
             var titulo = input.value ? input.value.trim() : '';
             var original = input.getAttribute('data-original-value') || '';
             if (!titulo || titulo === original) return;
@@ -589,7 +858,7 @@
             params.append('checklistId', checklistId);
             params.append('titulo', titulo);
             return atualizarConteudoModalAjax(
-                '/demandas/' + currentDetailId + '/checklists/renomear',
+                '/demandas/' + id + '/checklists/renomear',
                 'POST',
                 params,
                 'Checklist atualizada.'
@@ -597,29 +866,35 @@
         };
 
         window.adicionarItemChecklistModal = function (inputEl, checklistId) {
-            if (!inputEl || !inputEl.value.trim()) return;
+            var id = obterDemandaIdAtual();
+            if (!id || !inputEl || !inputEl.value.trim()) return;
             var params = new URLSearchParams();
             params.append('checklistId', checklistId);
             params.append('texto', inputEl.value.trim());
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/checklists/itens/adicionar', 'POST', params, 'Item adicionado.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/checklists/itens/adicionar', 'POST', params, 'Item adicionado.');
         };
 
         window.toggleChecklistItemModal = function (checklistId, itemId) {
+            var id = obterDemandaIdAtual();
+            if (!id) return;
             var params = new URLSearchParams();
             params.append('checklistId', checklistId);
             params.append('itemId', itemId);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/checklists/itens/toggle', 'POST', params);
+            atualizarConteudoModalAjax('/demandas/' + id + '/checklists/itens/toggle', 'POST', params);
         };
 
         window.removerChecklistItemModal = function (checklistId, itemId) {
+            var id = obterDemandaIdAtual();
+            if (!id) return;
             var params = new URLSearchParams();
             params.append('checklistId', checklistId);
             params.append('itemId', itemId);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/checklists/itens/remover', 'POST', params, 'Item removido.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/checklists/itens/remover', 'POST', params, 'Item removido.');
         };
 
         window.atualizarChecklistItemModal = function (checklistId, itemId, input) {
-            if (!input) return;
+            var id = obterDemandaIdAtual();
+            if (!id || !input) return;
             var texto = input.value ? input.value.trim() : '';
             var original = input.getAttribute('data-original-value') || '';
             if (!texto || texto === original) return;
@@ -628,7 +903,7 @@
             params.append('itemId', itemId);
             params.append('texto', texto);
             return atualizarConteudoModalAjax(
-                '/demandas/' + currentDetailId + '/checklists/itens/atualizar',
+                '/demandas/' + id + '/checklists/itens/atualizar',
                 'POST',
                 params,
                 'Item atualizado.'
@@ -637,86 +912,507 @@
 
         // Membros
         window.adicionarMembroModal = function (membro) {
+            var id = obterDemandaIdAtual();
+            if (!id) return;
             var params = new URLSearchParams();
             params.append('membro', membro);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/membros/adicionar', 'POST', params, 'Membro adicionado.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/membros/adicionar', 'POST', params, 'Membro adicionado.');
         };
 
         window.removerMembroModal = function (membro) {
+            var id = obterDemandaIdAtual();
+            if (!id) return;
             var params = new URLSearchParams();
             params.append('membro', membro);
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/membros/remover', 'POST', params, 'Membro removido.');
+            atualizarConteudoModalAjax('/demandas/' + id + '/membros/remover', 'POST', params, 'Membro removido.');
         };
 
-        // Imagem
+
+        // ── Imagem e Anexos ──
+
+        // ── Imagem e Anexos ──
+
+        var _ultimoCliqueSeletorImg = 0;
+        window.acionarSeletorImagemModal = function (triggerBtn) {
+            var agora = Date.now();
+            if (agora - _ultimoCliqueSeletorImg < 400) {
+                return;
+            }
+            _ultimoCliqueSeletorImg = agora;
+            console.log('[Upload] Clique detectado no botão "Escolher Imagem do Computador"');
+
+            var fileInput = document.getElementById('input-modal-imagem-file')
+                || document.querySelector('#modal-detail-dialog-content input[type="file"]')
+                || document.querySelector('input[type="file"][name="arquivo"]');
+
+            if (!fileInput) {
+                console.error('[Upload] Elemento input[type="file"] não encontrado no DOM!');
+                exibirToast('Campo de upload não encontrado.', 'erro');
+                return;
+            }
+
+            fileInput.value = '';
+            console.log('[Upload] Abrindo seletor de arquivos do sistema operacional...');
+            fileInput.click();
+        };
+
+        window.focarAbaUploadImagem = function () {
+            window.fecharTodosPopovers();
+            var sec = document.getElementById('modal-section-upload-imagem');
+            if (sec) {
+                sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                var btn = document.getElementById('btn-escolher-imagem-computador');
+                if (btn) btn.focus();
+            }
+        };
+
         window.uploadImagemArquivoModal = function (input) {
-            if (!currentDetailId || !input || !input.files || !input.files[0]) return;
+            console.log('[Upload] Evento change disparado no input file');
+            if (!input || !input.files || !input.files.length) {
+                console.warn('[Upload] Nenhum arquivo selecionado no input');
+                return;
+            }
+            if (input._isUploading) {
+                console.warn('[Upload] Upload já em andamento, ignorando chamada duplicada.');
+                return;
+            }
+            input._isUploading = true;
+
             var file = input.files[0];
-            if (file.size > 10 * 1024 * 1024) {
-                exibirToast('A imagem deve ter no máximo 10MB.', 'erro');
+            console.log('[Upload] Arquivo selecionado:', file.name, '| Tamanho:', file.size, 'bytes | Tipo MIME:', file.type);
+
+            var id = (input && input.getAttribute('data-demanda-id')) || obterDemandaIdAtual();
+            console.log('[Upload] ID do cartão identificado:', id);
+            if (!id) {
+                console.error('[Upload] Não foi possível identificar o ID do cartão!');
+                exibirToast('Não foi possível identificar o cartão.', 'erro');
+                input._isUploading = false;
                 return;
             }
 
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                var base64Url = e.target.result;
-                var params = new URLSearchParams();
-                params.append('imagemUrl', base64Url);
-                atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem', 'POST', params, 'Imagem enviada com sucesso!');
-            };
-            reader.readAsDataURL(file);
+            var tiposPermitidos = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+            if (!tiposPermitidos.includes(file.type.toLowerCase())) {
+                console.warn('[Upload] Formato de arquivo recusado:', file.type);
+                exibirToast('Formato não aceito. Utilize PNG, JPG, JPEG, WEBP ou GIF.', 'erro');
+                input.value = '';
+                input._isUploading = false;
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                console.warn('[Upload] Tamanho do arquivo excede o limite de 10MB:', file.size);
+                exibirToast('A imagem deve ter no máximo 10MB.', 'erro');
+                input.value = '';
+                input._isUploading = false;
+                return;
+            }
+
+            console.log('[Upload] Início do upload multipart para /demandas/' + id + '/imagem/upload');
+            var formData = new FormData();
+            formData.append('arquivo', file);
+
+            var uploadBtn = document.getElementById('btn-escolher-imagem-computador') || document.querySelector('[data-action="escolher-imagem"]');
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.style.opacity = '0.7';
+            }
+
+            window.fecharTodosPopovers();
+
+            return atualizarConteudoModalAjax('/demandas/' + id + '/imagem/upload', 'POST', formData, 'Imagem enviada com sucesso!')
+                .then(function () {
+                    console.log('[Upload] Resposta do servidor recebida e fragmento do modal atualizado no DOM');
+                    return window.sincronizarCardDoServidor(id).then(function () {
+                        console.log('[Upload] Cartão sincronizado no quadro Kanban (capa e contador atualizados)');
+                    });
+                })
+                .catch(function (err) {
+                    console.error('[Upload] Erro durante o upload da imagem:', err);
+                    exibirToast('Erro ao enviar imagem. Verifique o arquivo e tente novamente.', 'erro');
+                })
+                .finally(function () {
+                    input._isUploading = false;
+                    var b = document.getElementById('btn-escolher-imagem-computador') || document.querySelector('[data-action="escolher-imagem"]');
+                    if (b) {
+                        b.disabled = false;
+                        b.style.opacity = '1';
+                    }
+                    if (input) input.value = '';
+                });
         };
 
-        window.adicionarImagemModal = function () {
-            if (!currentDetailId) return;
-            var input = dialog.querySelector('#input-modal-imagem-url');
-            if (!input || !input.value.trim()) {
-                exibirToast('Informe a URL ou selecione uma imagem do seu computador.', 'erro');
+
+        window.fecharTodosPopovers = function () {
+            document.querySelectorAll('.popover-menu').forEach(function (p) {
+                p.classList.add('is-hidden');
+            });
+        };
+
+        window.adicionarImagemModal = function (triggerBtn) {
+            console.log('[Upload URL] Clique detectado em Anexar via URL');
+            var id = (triggerBtn && triggerBtn.getAttribute('data-demanda-id')) || obterDemandaIdAtual();
+            console.log('[Upload URL] ID do cartão identificado:', id);
+            if (!id) {
+                console.error('[Upload URL] Não foi possível identificar o ID do cartão!');
+                exibirToast('Não foi possível identificar o cartão.', 'erro');
                 return;
             }
+
+            var input = (triggerBtn && triggerBtn.parentElement && triggerBtn.parentElement.querySelector('input[type="url"]'))
+                || document.getElementById('input-modal-imagem-url');
+            if (!input || !input.value.trim()) {
+                exibirToast('Informe a URL da imagem (https://...).', 'erro');
+                return;
+            }
+            var url = input.value.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('data:image/')) {
+                exibirToast('A URL deve começar com http:// ou https://', 'erro');
+                return;
+            }
+
+            console.log('[Upload URL] Início do envio POST /demandas/' + id + '/imagem com URL:', url);
             var params = new URLSearchParams();
-            params.append('imagemUrl', input.value.trim());
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem', 'POST', params, 'Imagem anexada!');
+            params.append('imagemUrl', url);
+            window.fecharTodosPopovers();
+
+            var btn = (triggerBtn && triggerBtn.tagName === 'BUTTON') ? triggerBtn : document.getElementById('btn-anexar-imagem-url');
+            if (btn) {
+                btn.disabled = true;
+            }
+
+            return atualizarConteudoModalAjax('/demandas/' + id + '/imagem', 'POST', params, 'Imagem anexada com sucesso!')
+                .then(function () {
+                    if (input) input.value = '';
+                    console.log('[Upload URL] Resposta do servidor recebida e fragmento do modal atualizado');
+                    return window.sincronizarCardDoServidor(id).then(function () {
+                        console.log('[Upload URL] Cartão sincronizado no quadro Kanban');
+                    });
+                })
+                .catch(function (err) {
+                    console.error('[Upload URL] Erro ao anexar imagem via URL:', err);
+                    exibirToast('Erro ao anexar imagem via URL.', 'erro');
+                })
+                .finally(function () {
+                    if (btn) btn.disabled = false;
+                });
+        };
+
+
+        window.removerAnexoModal = function (anexoId) {
+            var id = obterDemandaIdAtual();
+            if (!id || !anexoId) return;
+            if (!confirm('Deseja realmente remover este anexo?')) return;
+            window.fecharTodosPopovers();
+            var params = new URLSearchParams();
+            params.append('anexoId', anexoId);
+            return atualizarConteudoModalAjax('/demandas/' + id + '/anexos/remover', 'POST', params, 'Anexo removido.')
+                .then(function () {
+                    window.sincronizarCardDoServidor(id);
+                });
+        };
+
+        window.tornarCapaAnexoModal = function (anexoId) {
+            var id = obterDemandaIdAtual();
+            if (!id || !anexoId) return;
+            window.fecharTodosPopovers();
+            var params = new URLSearchParams();
+            params.append('anexoId', anexoId);
+            params.append('capa', 'true');
+            return atualizarConteudoModalAjax('/demandas/' + id + '/anexos/capa', 'POST', params, 'Capa atualizada.')
+                .then(function () {
+                    window.sincronizarCardDoServidor(id);
+                });
+        };
+
+        window.removerCapaAnexoModal = function (anexoId) {
+            var id = obterDemandaIdAtual();
+            if (!id || !anexoId) return;
+            window.fecharTodosPopovers();
+            var params = new URLSearchParams();
+            params.append('anexoId', anexoId);
+            params.append('capa', 'false');
+            return atualizarConteudoModalAjax('/demandas/' + id + '/anexos/capa', 'POST', params, 'Capa removida.')
+                .then(function () {
+                    window.sincronizarCardDoServidor(id);
+                });
+        };
+
+
+        window.abrirEditarNomeAnexoModal = function (anexoId, nomeAtual) {
+            var id = obterDemandaIdAtual();
+            if (!id || !anexoId) return;
+            window.fecharTodosPopovers();
+            var novoNome = prompt('Editar nome do anexo:', nomeAtual || '');
+            if (novoNome === null || !novoNome.trim() || novoNome.trim() === nomeAtual) return;
+            var params = new URLSearchParams();
+            params.append('anexoId', anexoId);
+            params.append('nome', novoNome.trim());
+            return atualizarConteudoModalAjax('/demandas/' + id + '/anexos/renomear', 'POST', params, 'Anexo renomeado.');
+        };
+
+        window.comentarSobreAnexoModal = function (anexoId, nomeAnexo) {
+            window.fecharTodosPopovers();
+            var input = document.getElementById('input-novo-comentario');
+            if (input) {
+                var prefixo = nomeAnexo ? (nomeAnexo + ' ') : '';
+                input.value = prefixo;
+                input.focus();
+                window.validarBotaoComentario(input);
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         };
 
         window.removerImagemModal = function () {
-            if (!currentDetailId) return;
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/imagem/remover', 'POST', null, 'Imagem removida.');
+            var id = obterDemandaIdAtual();
+            if (!id) return;
+            return atualizarConteudoModalAjax('/demandas/' + id + '/imagem/remover', 'POST', null, 'Anexos removidos.');
         };
+
+        window.removerImagemEspecificaModal = function (imgUrl) {
+            var id = obterDemandaIdAtual();
+            if (!id || !imgUrl) return;
+            var params = new URLSearchParams();
+            params.append('imagemUrl', imgUrl);
+            return atualizarConteudoModalAjax('/demandas/' + id + '/imagem/remover', 'POST', params, 'Anexo removido.');
+        };
+
+        /* ── Visualizador Ampliado de Imagens (Lightbox estilo Trello) ── */
+
+        window.listaImagensVisualizador = [];
+        window.indiceImagemVisualizador = 0;
+
+        window.abrirVisualizadorImagem = function (url, nome, metaInfo, anexoId, isCapa) {
+            if (!url) return;
+            window.listaImagensVisualizador = [{
+                url: url,
+                nome: nome || 'Imagem',
+                meta: metaInfo || '',
+                id: anexoId || null,
+                isCapa: !!isCapa
+            }];
+            window.indiceImagemVisualizador = 0;
+            window.renderizarImagemVisualizador();
+        };
+
+        window.abrirVisualizadorPorAnexo = function (anexoId) {
+            var items = [];
+            var elements = document.querySelectorAll('.attachment-info-clickable[data-anexo-img="true"]');
+            var selectedIndex = 0;
+
+            elements.forEach(function (el, idx) {
+                var id = el.getAttribute('data-anexo-id');
+                var url = el.getAttribute('data-anexo-url');
+                var nome = el.getAttribute('data-anexo-nome') || 'Anexo';
+                var isCapa = el.getAttribute('data-anexo-capa') === 'true';
+                var metaSpan = el.querySelector('span');
+                var metaText = metaSpan ? metaSpan.textContent.trim() : '';
+
+                items.push({
+                    id: id,
+                    url: url,
+                    nome: nome,
+                    meta: metaText,
+                    isCapa: isCapa
+                });
+
+                if (String(id) === String(anexoId)) {
+                    selectedIndex = idx;
+                }
+            });
+
+            if (items.length === 0 && anexoId) {
+                var fallback = document.querySelector('[data-anexo-id="' + anexoId + '"]');
+                if (fallback) {
+                    items.push({
+                        id: anexoId,
+                        url: fallback.getAttribute('data-anexo-url'),
+                        nome: fallback.getAttribute('data-anexo-nome') || 'Anexo',
+                        meta: '',
+                        isCapa: fallback.getAttribute('data-anexo-capa') === 'true'
+                    });
+                }
+            }
+
+            if (items.length > 0) {
+                window.listaImagensVisualizador = items;
+                window.indiceImagemVisualizador = selectedIndex;
+                window.renderizarImagemVisualizador();
+            }
+        };
+
+        window.navegarVisualizadorImagem = function (delta) {
+            var total = window.listaImagensVisualizador.length;
+            if (total <= 1) return;
+            window.indiceImagemVisualizador = (window.indiceImagemVisualizador + delta + total) % total;
+            window.renderizarImagemVisualizador();
+        };
+
+        window.renderizarImagemVisualizador = function () {
+            var viewer = document.getElementById('image-viewer-lightbox');
+            if (!viewer) return;
+
+            var items = window.listaImagensVisualizador;
+            var idx = window.indiceImagemVisualizador;
+            if (!items || items.length === 0 || !items[idx]) return;
+
+            var item = items[idx];
+            var imgEl = document.getElementById('viewer-img-element');
+            var titleEl = document.getElementById('viewer-file-title');
+            var metaEl = document.getElementById('viewer-file-meta');
+            var openEl = document.getElementById('viewer-action-open');
+            var downloadEl = document.getElementById('viewer-action-download');
+            var capaBtn = document.getElementById('viewer-action-capa');
+            var capaText = document.getElementById('viewer-action-capa-text');
+            var delBtn = document.getElementById('viewer-action-delete');
+            var prevBtn = document.getElementById('btn-viewer-prev');
+            var nextBtn = document.getElementById('btn-viewer-next');
+
+            if (imgEl) imgEl.src = item.url;
+            if (titleEl) titleEl.textContent = item.nome;
+            if (metaEl) {
+                var posText = (idx + 1) + ' de ' + items.length;
+                metaEl.textContent = item.meta ? (item.meta + ' • ' + posText) : posText;
+            }
+
+            if (openEl) openEl.href = item.url;
+            if (downloadEl) {
+                downloadEl.href = item.url;
+                downloadEl.setAttribute('download', item.nome);
+            }
+
+            if (capaBtn) {
+                if (item.id) {
+                    capaBtn.style.display = 'inline-flex';
+                    if (capaText) capaText.textContent = item.isCapa ? 'Remover capa' : 'Tornar capa';
+                } else {
+                    capaBtn.style.display = 'none';
+                }
+            }
+
+            if (delBtn) {
+                delBtn.style.display = item.id ? 'inline-flex' : 'none';
+            }
+
+            if (prevBtn) {
+                if (items.length > 1) prevBtn.classList.remove('is-hidden');
+                else prevBtn.classList.add('is-hidden');
+            }
+            if (nextBtn) {
+                if (items.length > 1) nextBtn.classList.remove('is-hidden');
+                else nextBtn.classList.add('is-hidden');
+            }
+
+            viewer.classList.remove('is-hidden');
+        };
+
+        window.fecharVisualizadorImagem = function () {
+            var viewer = document.getElementById('image-viewer-lightbox');
+            if (viewer) {
+                viewer.classList.add('is-hidden');
+                var imgEl = document.getElementById('viewer-img-element');
+                if (imgEl) imgEl.src = '';
+            }
+        };
+
+        window.toggleCapaVisualizador = function () {
+            var items = window.listaImagensVisualizador;
+            var idx = window.indiceImagemVisualizador;
+            if (!items || !items[idx] || !items[idx].id) return;
+            var item = items[idx];
+
+            if (item.isCapa) {
+                window.removerCapaAnexoModal(item.id).then(function () {
+                    item.isCapa = false;
+                    var capaText = document.getElementById('viewer-action-capa-text');
+                    if (capaText) capaText.textContent = 'Tornar capa';
+                });
+            } else {
+                window.tornarCapaAnexoModal(item.id).then(function () {
+                    items.forEach(function (it) { it.isCapa = false; });
+                    item.isCapa = true;
+                    var capaText = document.getElementById('viewer-action-capa-text');
+                    if (capaText) capaText.textContent = 'Remover capa';
+                });
+            }
+        };
+
+        window.excluirAnexoVisualizador = function () {
+            var items = window.listaImagensVisualizador;
+            var idx = window.indiceImagemVisualizador;
+            if (!items || !items[idx] || !items[idx].id) return;
+            var item = items[idx];
+
+            window.removerAnexoModal(item.id).then(function () {
+                items.splice(idx, 1);
+                if (items.length === 0) {
+                    window.fecharVisualizadorImagem();
+                } else {
+                    if (window.indiceImagemVisualizador >= items.length) {
+                        window.indiceImagemVisualizador = items.length - 1;
+                    }
+                    window.renderizarImagemVisualizador();
+                }
+            });
+        };
+
+
+
 
 
         // Acompanhamento
         window.toggleAcompanharModal = function () {
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/acompanhar', 'POST', null, 'Preferência de acompanhamento alterada.');
+            var id = obterDemandaIdAtual();
+            if (!id) return;
+            return atualizarConteudoModalAjax('/demandas/' + id + '/acompanhar', 'POST', null, 'Preferência de acompanhamento alterada.');
         };
 
         // Comentários
         window.validarBotaoComentario = function (textarea) {
-            var btn = dialog.querySelector('#btn-salvar-comentario');
+            var btn = document.getElementById('btn-salvar-comentario') || document.querySelector('[data-action="salvar-comentario"]');
             if (btn) {
-                btn.disabled = !(textarea && textarea.value.trim().length > 0);
+                var texto = textarea ? textarea.value.trim() : '';
+                btn.disabled = texto.length === 0;
             }
         };
 
-        window.enviarComentarioModal = function () {
-            if (!currentDetailId) return;
-            var input = dialog.querySelector('#input-novo-comentario');
-            if (!input || !input.value.trim()) return;
+        window.enviarComentarioModal = function (triggerBtn) {
+            var id = (triggerBtn && triggerBtn.getAttribute('data-demanda-id')) || obterDemandaIdAtual();
+            if (!id) {
+                console.error('enviarComentarioModal: ID da demanda não encontrado.');
+                exibirToast('Não foi possível identificar o cartão.', 'erro');
+                return Promise.reject(new Error('ID da demanda não encontrado'));
+            }
+            var input = document.getElementById('input-novo-comentario') || document.querySelector('.comment-input-field');
+            if (!input || !input.value.trim()) {
+                exibirToast('O comentário não pode estar vazio.', 'erro');
+                return Promise.resolve();
+            }
 
             var params = new URLSearchParams();
             params.append('texto', input.value.trim());
-            atualizarConteudoModalAjax('/demandas/' + currentDetailId + '/comentar', 'POST', params, 'Comentário adicionado!');
+            return atualizarConteudoModalAjax('/demandas/' + id + '/comentar', 'POST', params, 'Comentário adicionado!')
+                .then(function () {
+                    var el = document.getElementById('input-novo-comentario') || document.querySelector('.comment-input-field');
+                    if (el) {
+                        el.value = '';
+                        window.validarBotaoComentario(el);
+                    }
+                });
         };
 
         // Alternar Visualização de Detalhes na Atividade
-        window.toggleMostrarDetalhesAtividade = function () {
-            var timeline = dialog.querySelector('#modal-activity-list');
-            var btn = dialog.querySelector('#btn-toggle-detalhes-atividade');
-            if (!timeline || !btn) return;
+        window.toggleMostrarDetalhesAtividade = function (triggerBtn) {
+            var timeline = document.getElementById('modal-activity-list') || document.querySelector('.activity-timeline');
+            var btn = triggerBtn || document.getElementById('btn-toggle-detalhes-atividade') || document.querySelector('[data-action="mostrar-detalhes"]');
+            if (!timeline) return;
 
             var ocultaSistema = timeline.classList.toggle('hide-system');
-            btn.textContent = ocultaSistema ? 'Mostrar detalhes' : 'Ocultar detalhes';
+            if (btn) {
+                btn.textContent = ocultaSistema ? 'Mostrar Detalhes' : 'Ocultar Detalhes';
+            }
         };
+
+
 
         // Exclusão
         window.confirmarExclusaoModal = function () {
@@ -740,7 +1436,117 @@
                 });
             }
         };
+
+        // ── Delegação de Eventos para os Controles do Modal (Idempotente) ──
+        if (!window.__nexiooModalDelegacaoAtiva) {
+            window.__nexiooModalDelegacaoAtiva = true;
+
+            document.addEventListener('click', function (e) {
+                // 0. Botão Editar Descrição ou clique na área de leitura / placeholder
+                var btnEditarDesc = e.target.closest('[data-action="editar-descricao"], #btn-editar-descricao, #modal-desc-view-mode, #modal-desc-empty-placeholder');
+                if (btnEditarDesc) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.abrirEditorDescricaoModal();
+                    return;
+                }
+
+                // 1. Botão Salvar Descrição
+                var btnSalvarDesc = e.target.closest('[data-action="salvar-descricao"], #btn-salvar-descricao');
+                if (btnSalvarDesc) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.salvarDescricaoModal(btnSalvarDesc);
+                    return;
+                }
+
+                // 2. Botão Cancelar Descrição
+                var btnCancelarDesc = e.target.closest('[data-action="cancelar-descricao"], #btn-cancelar-descricao');
+                if (btnCancelarDesc) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.fecharEditorDescricaoModal();
+                    return;
+                }
+
+
+                // 3. Botão Escolher Imagem do Computador
+                var btnEscolherImg = e.target.closest('[data-action="escolher-imagem"], #btn-escolher-imagem-computador');
+                if (btnEscolherImg) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.acionarSeletorImagemModal(btnEscolherImg);
+                    return;
+                }
+
+
+
+
+                // 4. Botão Anexar via URL
+                var btnAnexarUrl = e.target.closest('[data-action="anexar-imagem-url"], #btn-anexar-imagem-url');
+                if (btnAnexarUrl) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.adicionarImagemModal(btnAnexarUrl);
+                    return;
+                }
+
+                // 5. Botão Salvar Comentário
+                var btnSalvarCom = e.target.closest('[data-action="salvar-comentario"], #btn-salvar-comentario');
+                if (btnSalvarCom) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.enviarComentarioModal(btnSalvarCom);
+                    return;
+                }
+
+                // 6. Botão Mostrar Detalhes da Atividade
+                var btnToggleDet = e.target.closest('[data-action="mostrar-detalhes"], #btn-toggle-detalhes-atividade');
+                if (btnToggleDet) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.toggleMostrarDetalhesAtividade(btnToggleDet);
+                    return;
+                }
+            });
+
+            document.addEventListener('change', function (e) {
+                if (e.target && (e.target.id === 'input-modal-imagem-file' || e.target.matches('#modal-detail-dialog-content input[type="file"]'))) {
+                    window.uploadImagemArquivoModal(e.target);
+                }
+            });
+
+            document.addEventListener('input', function (e) {
+                if (e.target && (e.target.id === 'input-novo-comentario' || e.target.classList.contains('comment-input-field'))) {
+                    window.validarBotaoComentario(e.target);
+                }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.target && (e.target.id === 'input-novo-comentario' || e.target.classList.contains('comment-input-field'))) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        window.enviarComentarioModal();
+                    }
+                }
+                if (e.target && (e.target.id === 'input-modal-imagem-url' || e.target.matches('.popover-input-text[type="url"]'))) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        window.adicionarImagemModal();
+                    }
+                }
+                if (e.target && e.target.id === 'modal-input-titulo') {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        window.salvarTituloModal(e.target);
+                        e.target.blur();
+                    }
+                }
+            });
+        }
     }
+
+
 
     /**
      * Interação dos Cartões no Quadro
@@ -961,58 +1767,12 @@
 
 
     /**
-     * Recolhimento de Colunas
+     * Recolhimento e Menus de Colunas
      */
     function iniciarRecolhimentoColunas() {
-        document.querySelectorAll('[data-action="toggle-collapse-coluna"]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var coluna = btn.closest('.kanban-column');
-                if (coluna) coluna.classList.toggle('kanban-column--collapsed');
-            });
-        });
-
-        document.querySelectorAll('.kanban-column').forEach(function (coluna) {
-            coluna.addEventListener('click', function (e) {
-                if (coluna.classList.contains('kanban-column--collapsed')) {
-                    if (!e.target.closest('a, button, select, form')) {
-                        coluna.classList.remove('kanban-column--collapsed');
-                    }
-                }
-            });
-        });
-
-        document.querySelectorAll('[data-action="toggle-column-menu"]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var menu = btn.parentNode.querySelector('.column-options-menu');
-                var abrir = menu && menu.classList.contains('is-hidden');
-                document.querySelectorAll('.column-options-menu').forEach(function (item) {
-                    item.classList.add('is-hidden');
-                });
-                document.querySelectorAll('[data-action="toggle-column-menu"]').forEach(function (item) {
-                    item.setAttribute('aria-expanded', 'false');
-                });
-                if (menu && abrir) {
-                    menu.classList.remove('is-hidden');
-                    btn.setAttribute('aria-expanded', 'true');
-                }
-            });
-        });
-
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('.column-options-wrapper')) {
-                document.querySelectorAll('.column-options-menu').forEach(function (menu) {
-                    menu.classList.add('is-hidden');
-                });
-                document.querySelectorAll('[data-action="toggle-column-menu"]').forEach(function (btn) {
-                    btn.setAttribute('aria-expanded', 'false');
-                });
-            }
-        });
+        /* Registrado via delegação de eventos global em document */
     }
+
 
     /**
      * Modal de Nova Demanda
@@ -1286,6 +2046,15 @@
         params.append('coluna', colunaId);
         params.append('prioridade', 'MEDIA');
 
+        var boardTrack = document.getElementById('board-columns-track');
+        var projId = boardTrack ? boardTrack.getAttribute('data-projeto-id') : null;
+        if (!projId) {
+            var urlParams = new URLSearchParams(window.location.search);
+            projId = urlParams.get('projetoId');
+        }
+        if (projId) params.append('projetoId', projId);
+
+
         fetch('/demandas/compositor', {
             method: 'POST',
             headers: {
@@ -1396,7 +2165,69 @@
             if (coluna) submeterCompositor(coluna);
             return;
         }
+
+        // 6. Recolher / Expandir Coluna
+        var btnCollapse = e.target.closest('[data-action="toggle-collapse-coluna"]');
+        if (btnCollapse) {
+            e.preventDefault();
+            e.stopPropagation();
+            var colToCollapse = btnCollapse.closest('.kanban-column');
+            if (colToCollapse) colToCollapse.classList.toggle('kanban-column--collapsed');
+            return;
+        }
+
+        // 7. Menu de opções da Coluna (...)
+        var btnMenu = e.target.closest('[data-action="toggle-column-menu"]');
+        if (btnMenu) {
+            e.preventDefault();
+            e.stopPropagation();
+            var wrapper = btnMenu.closest('.column-options-wrapper');
+            var menu = wrapper ? wrapper.querySelector('.column-options-menu') : null;
+            var abrir = menu && menu.classList.contains('is-hidden');
+            document.querySelectorAll('.column-options-menu').forEach(function (m) { m.classList.add('is-hidden'); });
+            document.querySelectorAll('[data-action="toggle-column-menu"]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+            if (menu && abrir) {
+                menu.classList.remove('is-hidden');
+                btnMenu.setAttribute('aria-expanded', 'true');
+            }
+            return;
+        }
+
+        // 8. Fechar menus de coluna ao clicar fora
+        if (!e.target.closest('.column-options-wrapper')) {
+            document.querySelectorAll('.column-options-menu').forEach(function (m) { m.classList.add('is-hidden'); });
+            document.querySelectorAll('[data-action="toggle-column-menu"]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+        }
+
+        // 10. Clique em Anexo com Imagem (abrir visualizador ampliado)
+        var clickAnexoImg = e.target.closest('.attachment-info-clickable');
+        if (clickAnexoImg && !e.target.closest('.popover-wrapper, a, button')) {
+            var anxImg = clickAnexoImg.getAttribute('data-anexo-img');
+            var anxId = clickAnexoImg.getAttribute('data-anexo-id');
+            if (anxImg === 'true' && anxId) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.abrirVisualizadorPorAnexo(anxId);
+                return;
+            }
+        }
+
+        // 11. Clique na Capa do Cartão (abrir visualizador ampliado)
+        var cardCover = e.target.closest('.card-cover-wrapper');
+        if (cardCover && !e.target.closest('.btn-card-complete, button, a, form')) {
+            e.preventDefault();
+            e.stopPropagation();
+            var imgEl = cardCover.querySelector('img');
+            var url = cardCover.getAttribute('data-cover-url') || (imgEl ? imgEl.src : null);
+            var title = cardCover.getAttribute('data-cover-title') || 'Capa';
+            if (url) {
+                window.abrirVisualizadorImagem(url, title, null);
+                return;
+            }
+        }
     });
+
+
 
     document.addEventListener('keydown', function (e) {
         // Escape no input de nova lista

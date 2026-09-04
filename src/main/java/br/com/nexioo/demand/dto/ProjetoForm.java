@@ -17,6 +17,8 @@ public class ProjetoForm {
 
     private String gradiente = "linear-gradient(135deg, #a855f7, #ec4899)";
 
+    private Long areaTrabalhoId;
+
     public String getNome() {
         return nome;
     }
@@ -40,4 +42,13 @@ public class ProjetoForm {
     public void setGradiente(String gradiente) {
         this.gradiente = gradiente;
     }
+
+    public Long getAreaTrabalhoId() {
+        return areaTrabalhoId;
+    }
+
+    public void setAreaTrabalhoId(Long areaTrabalhoId) {
+        this.areaTrabalhoId = areaTrabalhoId;
+    }
 }
+

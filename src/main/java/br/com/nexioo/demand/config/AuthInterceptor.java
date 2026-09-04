@@ -28,8 +28,11 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 2. Permitir rotas públicas de autenticação (/login e /signup)
-        if (uri.equals("/login") || uri.equals("/signup")) {
+        // 2. Permitir rotas públicas de autenticação (/login, /signup e /logout)
+        if (uri.equals("/login") || uri.equals("/signup") || uri.equals("/logout")) {
+            if (uri.equals("/logout")) {
+                return true;
+            }
             // Se o usuário já estiver logado e tentar acessar /login ou /signup, redireciona para /projetos
             HttpSession session = request.getSession(false);
             if (session != null && session.getAttribute(CHAVE_USUARIO_LOGADO) != null) {
@@ -45,6 +48,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         boolean estaAutenticado = session != null && session.getAttribute(CHAVE_USUARIO_LOGADO) != null;
 
         if (estaAutenticado) {
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setDateHeader("Expires", 0);
             return true;
         }
 
@@ -57,6 +63,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         // 5. Redirecionar para /login se não estiver autenticado
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
         response.sendRedirect("/login");
         return false;
     }

@@ -3,11 +3,12 @@
 <body>
 
 <!-- Fragmento Thymeleaf do Conteúdo do Modal de Detalhes da Demanda -->
-<div th:fragment="modalDetalheConteudo" class="modal-detail-card" th:attr="data-id=${demanda.id}">
+<div th:fragment="modalDetalheConteudo" class="modal-detail-card modal-detail" th:attr="data-id=${demanda.id}">
 
     <!-- ── Barra Superior do Modal ────────────────────────────────────────── -->
-    <div class="modal-detail-header-bar">
+    <header class="modal-detail-header-bar">
         <div class="modal-detail-header-left">
+
             <!-- Dropdown / Badge de Lista / Status -->
             <div class="status-badge-dropdown-wrapper">
                 <form method="post" th:action="@{/demandas/{id}/status(id=${demanda.id})}" class="modal-status-form">
@@ -53,13 +54,15 @@
                 </svg>
             </button>
         </div>
-    </div>
+    </header>
 
     <!-- ── Corpo do Modal: Layout em 2 Colunas ──────────────────────────── -->
     <div class="modal-detail-body">
 
         <!-- ── Coluna Esquerda (Principal) ────────────────────────────────── -->
-        <div class="modal-detail-main-col">
+        <main class="modal-detail-main modal-detail-main-col" id="modal-detail-main">
+
+
 
             <!-- Linha do Título com Checkbox Circular de Conclusão -->
             <div class="modal-detail-title-row">
@@ -91,31 +94,17 @@
                            maxlength="120"
                            aria-label="Título da demanda"
                            th:attr="data-original-value=${demanda.titulo}"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault(); window.salvarTituloModal(this); this.blur();}"
                            onblur="window.salvarTituloModal(this)">
                 </div>
+
             </div>
 
             <!-- Linha de Botões de Ação Rápida e Atalhos -->
             <div class="modal-quick-props-row">
 
-                <!-- Botão Agrupador "Adicionar" -->
-                <div class="popover-wrapper">
-                    <button type="button" class="prop-pill" onclick="window.togglePopover('popover-adicionar')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        <span>Adicionar ▾</span>
-                    </button>
-                    <div id="popover-adicionar" class="popover-menu is-hidden">
-                        <button type="button" class="popover-item" onclick="window.openPopoverMenu('popover-etiquetas')">🏷️ Etiquetas</button>
-                        <button type="button" class="popover-item" onclick="window.openPopoverMenu('popover-datas')">📅 Datas</button>
-                        <button type="button" class="popover-item" onclick="window.openPopoverMenu('popover-checklist')">☑️ Checklist</button>
-                        <button type="button" class="popover-item" onclick="window.openPopoverMenu('popover-membros')">👤 Membros</button>
-                    </div>
-                </div>
-
                 <!-- Seletor de Etiquetas -->
+
                 <div class="popover-wrapper">
                     <button type="button" class="prop-pill" onclick="window.togglePopover('popover-etiquetas')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -123,14 +112,64 @@
                         </svg>
                         <span>Etiquetas</span>
                     </button>
-                    <div id="popover-etiquetas" class="popover-menu is-hidden">
-                        <div class="popover-title">Etiquetas</div>
-                        <div class="popover-options-list">
-                            <button type="button" class="tag-opt-btn tag--green" onclick="window.adicionarEtiquetaModal('Frontend', '#00E6A8')">Frontend</button>
-                            <button type="button" class="tag-opt-btn tag--blue" onclick="window.adicionarEtiquetaModal('Backend', '#3B82F6')">Backend</button>
-                            <button type="button" class="tag-opt-btn tag--pink" onclick="window.adicionarEtiquetaModal('Design', '#EC4899')">Design</button>
-                            <button type="button" class="tag-opt-btn tag--red" onclick="window.adicionarEtiquetaModal('Urgente', '#EF4444')">Urgente</button>
-                            <button type="button" class="tag-opt-btn tag--purple" onclick="window.adicionarEtiquetaModal('Infra', '#8B5CF6')">Infra</button>
+                    <div id="popover-etiquetas" class="popover-menu is-hidden" style="width: 290px;">
+                        <div class="popover-title flex-between">
+                            <span>Criar etiqueta</span>
+                            <button type="button" class="btn-subtle-icon" onclick="window.fecharTodosPopovers()" aria-label="Fechar" style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 14px; padding: 2px 6px;">✕</button>
+                        </div>
+                        <div class="popover-body-etiquetas" style="display: flex; flex-direction: column; gap: 12px; padding: 10px 0 4px 0;">
+                            <!-- Campo de Nome da Etiqueta -->
+                            <div>
+                                <label for="input-nova-etiqueta-nome" style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 5px;">Nome</label>
+                                <input type="text"
+                                       id="input-nova-etiqueta-nome"
+                                       class="popover-input-text"
+                                       placeholder="Digite o nome da etiqueta"
+                                       maxlength="40"
+                                       autocomplete="off"
+                                       oninput="window.atualizarPreviewEtiqueta()"
+                                       onkeydown="if(event.key==='Enter'){event.preventDefault(); window.salvarNovaEtiquetaModal();}">
+                            </div>
+
+                            <!-- Seleção de Cores Pré-definidas -->
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 6px;">Selecione uma cor</label>
+                                <div id="container-cores-etiqueta" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                                    <button type="button" class="color-swatch is-selected" data-color="#00E6A8" style="background-color: #00E6A8; height: 28px; border-radius: 6px; border: 2px solid #fff; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#00E6A8', this)" title="Verde Nexioo"></button>
+                                    <button type="button" class="color-swatch" data-color="#3B82F6" style="background-color: #3B82F6; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#3B82F6', this)" title="Azul"></button>
+                                    <button type="button" class="color-swatch" data-color="#EC4899" style="background-color: #EC4899; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#EC4899', this)" title="Rosa"></button>
+                                    <button type="button" class="color-swatch" data-color="#EF4444" style="background-color: #EF4444; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#EF4444', this)" title="Vermelho"></button>
+                                    <button type="button" class="color-swatch" data-color="#8B5CF6" style="background-color: #8B5CF6; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#8B5CF6', this)" title="Roxo"></button>
+                                    <button type="button" class="color-swatch" data-color="#F59E0B" style="background-color: #F59E0B; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#F59E0B', this)" title="Âmbar"></button>
+                                    <button type="button" class="color-swatch" data-color="#10B981" style="background-color: #10B981; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#10B981', this)" title="Esmeralda"></button>
+                                    <button type="button" class="color-swatch" data-color="#06B6D4" style="background-color: #06B6D4; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#06B6D4', this)" title="Ciano"></button>
+                                    <button type="button" class="color-swatch" data-color="#6366F1" style="background-color: #6366F1; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#6366F1', this)" title="Índigo"></button>
+                                    <button type="button" class="color-swatch" data-color="#E11D48" style="background-color: #E11D48; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;" onclick="window.selecionarCorEtiqueta('#E11D48', this)" title="Rubi"></button>
+                                </div>
+                            </div>
+
+                            <!-- Cor Personalizada (ColorPicker e Hexadecimal) -->
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 5px;">Ou cor personalizada</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="color" id="input-nova-etiqueta-colorpicker" value="#00E6A8" style="width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; cursor: pointer; background: transparent; padding: 2px;" onchange="window.selecionarCorPersonalizada(this.value)">
+                                    <input type="text" id="input-nova-etiqueta-cor-hex" class="popover-input-text" value="#00E6A8" maxlength="7" placeholder="#00E6A8" style="flex: 1; font-family: var(--font-mono); text-transform: uppercase;" oninput="window.selecionarCorPersonalizada(this.value)">
+                                </div>
+                            </div>
+
+                            <!-- Prévia da Etiqueta -->
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 5px;">Prévia</label>
+                                <div id="preview-nova-etiqueta" style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; background-color: rgba(0,230,168,0.15); color: #00E6A8; border: 1px solid #00E6A8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    Nome da etiqueta
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação -->
+                            <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+                                <button type="button" class="btn btn-fantasma btn-sm" onclick="window.fecharTodosPopovers()">Cancelar</button>
+                                <button type="button" class="btn btn-primario-destaque btn-sm" id="btn-criar-etiqueta" onclick="window.salvarNovaEtiquetaModal()">Criar</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -195,29 +234,16 @@
                     </div>
                 </div>
 
-                <!-- Seletor de Prioridade -->
-                <div class="prop-pill-dropdown">
-                    <button type="button" class="prop-pill" title="Prioridade">
-                        <span th:text="'Prioridade: ' + ${demanda.prioridade.descricao}">Prioridade</span>
-                    </button>
-                    <select id="modal-prop-prioridade" class="prop-pill-select" onchange="window.salvarCamposModal()">
-                        <option th:each="p : ${prioridades}"
-                                th:value="${p}"
-                                th:text="${p.descricao}"
-                                th:selected="${p == demanda.prioridade}">
-                        </option>
-                    </select>
-                </div>
-
             </div>
+
 
             <!-- Exibição de Etiquetas Aplicadas -->
             <div th:if="${!#lists.isEmpty(demanda.etiquetas)}" class="tags-badges-row">
                 <span th:each="tag : ${demanda.etiquetas}"
                       class="applied-tag-badge"
                       th:style="'background-color:' + ${tag.corHex} + '22; border-color:' + ${tag.corHex} + '; color:' + ${tag.corHex} + ';'">
-                    <span th:text="${tag.nome}">Frontend</span>
-                    <button type="button" class="btn-remove-tag" th:data-tag-id="${tag.id}" onclick="window.removerEtiquetaModal(this.getAttribute('data-tag-id'))">✕</button>
+                    <span th:text="${tag.nome}">Etiqueta</span>
+                    <button type="button" class="btn-remove-tag" th:data-tag-id="${tag.id}" onclick="window.removerEtiquetaModal(this.getAttribute('data-tag-id'))" title="Remover etiqueta">✕</button>
                 </span>
             </div>
 
@@ -233,18 +259,46 @@
 
             <!-- ── Seção Descrição Formatada ──────────────────────────────── -->
             <div class="modal-section-box">
-                <div class="modal-section-header">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="21" y1="10" x2="3" y2="10"></line>
-                        <line x1="21" y1="6" x2="3" y2="6"></line>
-                        <line x1="21" y1="14" x2="3" y2="14"></line>
-                        <line x1="21" y1="18" x2="3" y2="18"></line>
-                    </svg>
-                    <h2 class="modal-section-title">Descrição</h2>
+                <div class="modal-section-header flex-between">
+                    <div class="modal-section-title-group">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="15" y2="18"></line>
+                        </svg>
+                        <h2 class="modal-section-title">Descrição</h2>
+                    </div>
+                    <button type="button"
+                            class="btn-subtle-sm"
+                            id="btn-editar-descricao"
+                            data-action="editar-descricao"
+                            th:attr="data-demanda-id=${demanda.id}"
+                            th:style="${demanda.descricao != null and !#strings.isEmpty(demanda.descricao)} ? '' : 'display: none;'"
+                            onclick="window.abrirEditorDescricaoModal()">
+                        Editar
+                    </button>
                 </div>
 
-                <!-- Visualização estática ou Editor formatado -->
-                <div class="modal-editor-container" id="editor-descricao-wrapper">
+                <!-- Modo Leitura (quando existe descrição salva) -->
+                <div class="modal-desc-view-mode"
+                     id="modal-desc-view-mode"
+                     th:if="${demanda.descricao != null and !#strings.isEmpty(demanda.descricao)}"
+                     style="padding: 4px 0; font-size: 13.5px; color: var(--color-text); line-height: 1.55; white-space: pre-wrap; word-break: break-word; cursor: pointer;"
+                     onclick="window.abrirEditorDescricaoModal()"
+                     th:text="${demanda.descricao}">
+                </div>
+
+                <!-- Placeholder Vazio (quando não existe descrição salva) -->
+                <div class="modal-desc-empty-placeholder"
+                     id="modal-desc-empty-placeholder"
+                     th:if="${demanda.descricao == null or #strings.isEmpty(demanda.descricao)}"
+                     style="padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-secondary); font-size: 13px; cursor: pointer;"
+                     onclick="window.abrirEditorDescricaoModal()">
+                    Adicione uma descrição mais detalhada...
+                </div>
+
+                <!-- Modo Edição (Editor com Toolbar, Textarea e Ações) -->
+                <div class="modal-editor-container" id="editor-descricao-wrapper" style="display: none;">
                     <div class="modal-editor-toolbar">
                         <button type="button" class="tb-btn" onclick="window.inserirFormatacao('bold')" title="Negrito"><strong>B</strong></button>
                         <button type="button" class="tb-btn" onclick="window.inserirFormatacao('italic')" title="Itálico"><em>I</em></button>
@@ -256,27 +310,35 @@
                               class="modal-editor-textarea"
                               rows="4"
                               placeholder="Adicione uma descrição mais detalhada..."
-                              th:text="${demanda.descricao}"></textarea>
+                              th:text="${demanda.descricao}"
+                              th:attr="data-original-value=${demanda.descricao != null ? demanda.descricao : ''}"></textarea>
 
                     <div class="modal-editor-actions">
                         <button type="button"
                                 class="btn btn-primario-destaque btn-sm"
                                 id="btn-salvar-descricao"
+                                data-action="salvar-descricao"
+                                th:attr="data-demanda-id=${demanda.id}"
                                 onclick="window.salvarDescricaoModal()">
                             Salvar
                         </button>
                         <button type="button"
                                 class="btn btn-fantasma btn-sm"
                                 id="btn-cancelar-descricao"
-                                onclick="window.restaurarDescricaoModal()">
+                                data-action="cancelar-descricao"
+                                th:attr="data-demanda-id=${demanda.id}"
+                                onclick="window.fecharEditorDescricaoModal()">
                             Cancelar
                         </button>
                     </div>
+
                 </div>
             </div>
 
-            <!-- ── Seção Imagem Anexada ─────────────────────────────────── -->
-            <div class="modal-section-box">
+
+
+            <!-- ── Aba/Seção Imagem Anexada (sempre visível abaixo de Descrição) ── -->
+            <div class="modal-section-box" id="modal-section-upload-imagem">
                 <div class="modal-section-header">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -286,20 +348,25 @@
                     <h2 class="modal-section-title">Imagem Anexada</h2>
                 </div>
 
-                <div th:if="${demanda.imagemUrl != null and !demanda.imagemUrl.isBlank()}" class="modal-image-preview-container">
-                    <img th:src="${demanda.imagemUrl}" alt="Imagem anexada" class="modal-attached-image-preview" style="max-width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--color-border);" />
-                    <div style="margin-top: 8px;">
-                        <button type="button" class="btn btn-perigo-dark btn-sm" onclick="window.removerImagemModal()">Remover imagem</button>
-                    </div>
-                </div>
-
-                <div th:if="${demanda.imagemUrl == null or demanda.imagemUrl.isBlank()}" class="modal-image-upload-container">
+                <div class="modal-image-upload-container">
                     <div class="image-upload-box" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 2px dashed var(--color-border); border-radius: 10px; background: rgba(255,255,255,0.02);">
                         <!-- Opção 1: Upload de Arquivo Local -->
-
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                            <input type="file" id="input-modal-imagem-file" accept="image/*" style="display: none;" onchange="window.uploadImagemArquivoModal(this)" />
-                            <button type="button" class="btn btn-primario-destaque" onclick="document.getElementById('input-modal-imagem-file').click()" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="file"
+                                   id="input-modal-imagem-file"
+                                   name="arquivo"
+                                   th:attr="data-demanda-id=${demanda.id}"
+                                   accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                                   style="display: none;"
+                                   onchange="window.uploadImagemArquivoModal(this)" />
+
+                            <button type="button"
+                                    class="btn btn-primario-destaque"
+                                    id="btn-escolher-imagem-computador"
+                                    data-action="escolher-imagem"
+                                    th:attr="data-demanda-id=${demanda.id}"
+                                    onclick="window.acionarSeletorImagemModal(this)"
+                                    style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                     <polyline points="17 8 12 3 7 8"></polyline>
@@ -310,6 +377,7 @@
                             <span style="font-size: 12px; color: var(--color-text-secondary);">Formatos aceitos: PNG, JPG, JPEG, WEBP, GIF (máx. 10MB)</span>
                         </div>
 
+
                         <div style="display: flex; align-items: center; gap: 10px; margin: 2px 0;">
                             <div style="flex: 1; height: 1px; background: var(--color-border);"></div>
                             <span style="font-size: 11px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">ou digite a URL</span>
@@ -318,12 +386,129 @@
 
                         <!-- Opção 2: URL de Imagem -->
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="url" id="input-modal-imagem-url" class="popover-input-text" style="flex: 1;" placeholder="Cole a URL da imagem (https://...)...">
-                            <button type="button" class="btn btn-secundario btn-sm" onclick="window.adicionarImagemModal()">Anexar via URL</button>
+                            <input type="url"
+                                   id="input-modal-imagem-url"
+                                   th:attr="data-demanda-id=${demanda.id}"
+                                   class="popover-input-text"
+                                   style="flex: 1;"
+                                   placeholder="Cole a URL da imagem (https://...)..."
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault(); window.adicionarImagemModal(this);}">
+                            <button type="button"
+                                    class="btn btn-secundario btn-sm"
+                                    id="btn-anexar-imagem-url"
+                                    data-action="anexar-imagem-url"
+                                    th:attr="data-demanda-id=${demanda.id}"
+                                    onclick="window.adicionarImagemModal(this)">
+                                Anexar via URL
+                            </button>
                         </div>
+
+
                     </div>
                 </div>
             </div>
+
+
+
+            <!-- ── Seção Anexos (estilo Trello — renderiza SOMENTE quando há anexos) ── -->
+            <div th:if="${demanda.hasAnexos()}" class="modal-section-box" id="modal-section-anexos">
+
+                <div class="modal-section-header flex-between">
+                    <div class="modal-section-title-group">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                        <h2 class="modal-section-title">Anexos</h2>
+                    </div>
+                    <button type="button"
+                            class="btn-subtle-sm"
+                            id="btn-adicionar-anexo-topo"
+                            onclick="window.focarAbaUploadImagem()">
+                        Adicionar
+                    </button>
+
+                </div>
+
+                <!-- Subtítulo Arquivos (Imagem 1) -->
+                <h3 style="font-size: 11.5px; font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); margin: 8px 0 6px 0; letter-spacing: 0.5px;">Arquivos</h3>
+
+                <!-- Lista de Anexos (Imagem 1) -->
+                <div class="modal-anexos-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div th:each="anx : ${demanda.anexos}"
+                         class="modal-anexo-item"
+                         style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--color-border); border-radius: 8px;">
+
+                        <!-- Lado Esquerdo: Miniatura e Metadados (clicável para abrir visualizador ampliado se imagem) -->
+                        <div class="attachment-info-clickable"
+                             th:attr="data-anexo-id=${anx.id}, data-anexo-url=${anx.url}, data-anexo-nome=${anx.nome}, data-anexo-img=${anx.imagem}, data-anexo-capa=${anx.capa}"
+                             th:onclick="${anx.imagem} ? 'window.abrirVisualizadorPorAnexo(this.getAttribute(\'data-anexo-id\'))' : ''"
+                             th:style="${anx.imagem} ? 'display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; cursor: pointer;' : 'display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;'">
+
+                            <!-- Miniatura -->
+                            <div style="width: 56px; height: 42px; border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.25); border: 1px solid var(--color-border); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                                <img th:if="${anx.imagem}" th:src="${anx.url}" alt="Miniatura" class="attachment-preview-img" style="width: 100%; height: 100%; object-fit: cover;" />
+                                <svg th:if="${!anx.imagem}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-text-secondary);">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            </div>
+
+                            <!-- Textos -->
+                            <div style="min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                                <div style="font-size: 13.5px; font-weight: 600; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${anx.nome}">Captura de Tela.png</div>
+                                <div style="font-size: 11.5px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px;">
+                                    <span th:text="${anx.dataFormatada}">Adicionado há pouco</span>
+                                    <span th:if="${anx.capa}" style="color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 3px;">• <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Capa</span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Lado Direito: Ações (Abrir em nova aba e Menu de 3 Pontos) -->
+                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                            <!-- Botão Abrir em Nova Aba -->
+                            <a th:href="${anx.url}" target="_blank" rel="noopener noreferrer" class="btn-subtle-sm" title="Abrir anexo" style="padding: 5px 8px; display: inline-flex; align-items: center;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </a>
+
+                            <!-- Botão Menu de 3 Pontos com Popover (Imagem 2) -->
+                            <div class="popover-wrapper">
+                                <button type="button"
+                                        class="btn-subtle-sm"
+                                        th:attr="data-target='popover-anexo-menu-' + ${anx.id}"
+                                        onclick="window.togglePopover(this.getAttribute('data-target'))"
+                                        title="Opções do anexo"
+                                        style="padding: 5px 8px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="1.5"></circle>
+                                        <circle cx="6" cy="12" r="1.5"></circle>
+                                        <circle cx="18" cy="12" r="1.5"></circle>
+                                    </svg>
+                                </button>
+                                <div th:id="'popover-anexo-menu-' + ${anx.id}" class="popover-menu is-hidden" style="right: 0; left: auto; min-width: 170px;">
+
+                                    <button type="button" class="popover-item" th:data-id="${anx.id}" th:data-nome="${anx.nome}" onclick="window.abrirEditarNomeAnexoModal(this.getAttribute('data-id'), this.getAttribute('data-nome'))">Editar</button>
+                                    <button type="button" class="popover-item" th:data-id="${anx.id}" th:data-nome="${anx.nome}" onclick="window.comentarSobreAnexoModal(this.getAttribute('data-id'), this.getAttribute('data-nome'))">Comentário</button>
+                                    <a th:href="${anx.url}" th:download="${anx.nome}" target="_blank" class="popover-item" style="text-decoration: none; color: inherit; display: block;">Baixar</a>
+                                    <button th:if="${!anx.capa and anx.imagem}" type="button" class="popover-item" th:data-id="${anx.id}" onclick="window.tornarCapaAnexoModal(this.getAttribute('data-id'))">Tornar capa</button>
+                                    <button th:if="${anx.capa}" type="button" class="popover-item" th:data-id="${anx.id}" onclick="window.removerCapaAnexoModal(this.getAttribute('data-id'))">Remover capa</button>
+                                    <button type="button" class="popover-item" style="color: var(--color-danger, #EF4444);" th:data-id="${anx.id}" onclick="window.removerAnexoModal(this.getAttribute('data-id'))">Remover</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
 
 
 
@@ -390,10 +575,11 @@
                 </div>
             </div>
 
-        </div>
+        </main>
 
         <!-- ── Coluna Direita (Atividade e Comentários) ────────────────── -->
-        <div class="modal-detail-sidebar-col">
+        <aside class="modal-detail-sidebar modal-detail-sidebar-col" id="modal-detail-sidebar">
+
 
             <div class="modal-section-box">
                 <div class="modal-section-header flex-between">
@@ -406,6 +592,8 @@
                     <button type="button"
                             class="btn-subtle-sm"
                             id="btn-toggle-detalhes-atividade"
+                            data-action="mostrar-detalhes"
+                            th:attr="data-demanda-id=${demanda.id}"
                             onclick="window.toggleMostrarDetalhesAtividade()">
                         Mostrar Detalhes
                     </button>
@@ -422,12 +610,15 @@
                         <button type="button"
                                 class="btn btn-primario-destaque btn-sm"
                                 id="btn-salvar-comentario"
+                                data-action="salvar-comentario"
+                                th:attr="data-demanda-id=${demanda.id}"
                                 disabled
                                 onclick="window.enviarComentarioModal()">
                             Salvar
                         </button>
                     </div>
                 </div>
+
 
                 <!-- Histórico de Atividades e Comentários -->
                 <div class="activity-timeline hide-system" id="modal-activity-list">
@@ -465,7 +656,8 @@
                 </button>
             </div>
 
-        </div>
+        </aside>
+
 
     </div>
 

@@ -17,11 +17,16 @@ public class Projeto {
     private boolean recentementeVisualizado;
     private int quantidadeDemandas;
 
+    private Long areaTrabalhoId;
+    private String usuarioProprietario;
+
     public Projeto() {
         this.dataCriacao = LocalDate.now();
         this.membrosCount = 1;
         this.gradiente = "linear-gradient(135deg, #a855f7, #ec4899)";
+        this.areaTrabalhoId = 1L;
     }
+
 
     public Projeto(Long id, String nome, String descricao, String gradiente, boolean recentementeVisualizado) {
         this.id = id;
@@ -98,7 +103,24 @@ public class Projeto {
         this.quantidadeDemandas = quantidadeDemandas;
     }
 
+    public Long getAreaTrabalhoId() {
+        return areaTrabalhoId;
+    }
+
+    public void setAreaTrabalhoId(Long areaTrabalhoId) {
+        this.areaTrabalhoId = areaTrabalhoId;
+    }
+
+    public String getUsuarioProprietario() {
+        return usuarioProprietario;
+    }
+
+    public void setUsuarioProprietario(String usuarioProprietario) {
+        this.usuarioProprietario = usuarioProprietario;
+    }
+
     @Override
+
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

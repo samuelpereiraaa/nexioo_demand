@@ -16,7 +16,10 @@ public interface ProjetoRepository {
 
     List<Projeto> listarTodos();
 
+    List<Projeto> listarPorArea(Long areaTrabalhoId);
+
     List<Projeto> listarRecentes();
 
     void excluir(Long id);
 }
+

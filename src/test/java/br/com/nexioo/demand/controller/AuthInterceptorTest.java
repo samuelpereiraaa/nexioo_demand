@@ -37,6 +37,10 @@ class AuthInterceptorTest {
     @MockBean
     private ProjetoService projetoService;
 
+    @MockBean
+    private br.com.nexioo.demand.service.AreaTrabalhoService areaTrabalhoService;
+
+
 
     @Test
     @DisplayName("GET /login deve estar disponível sem autenticação (200 OK)")

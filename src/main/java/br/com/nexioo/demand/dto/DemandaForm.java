@@ -87,4 +87,15 @@ public class DemandaForm {
     public void setPrazo(LocalDate prazo) {
         this.prazo = prazo;
     }
+
+    private Long projetoId;
+
+    public Long getProjetoId() {
+        return projetoId;
+    }
+
+    public void setProjetoId(Long projetoId) {
+        this.projetoId = projetoId;
+    }
 }
+

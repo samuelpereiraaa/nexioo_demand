@@ -20,9 +20,16 @@ public interface DemandaService {
 
     List<Demanda> listarTodas();
 
+    List<Demanda> listarPorProjeto(Long projetoId);
+
     Map<Coluna, List<Demanda>> listarPorColuna();
 
+    Map<Coluna, List<Demanda>> listarPorColuna(Long projetoId);
+
     Map<Coluna, List<Demanda>> filtrar(String termo, Prioridade prioridade, String responsavel);
+
+    Map<Coluna, List<Demanda>> filtrar(Long projetoId, String termo, Prioridade prioridade, String responsavel);
+
 
     Demanda editar(Long id, DemandaForm form);
 
@@ -66,5 +73,18 @@ public interface DemandaService {
 
     Demanda removerImagem(Long id);
 
+    Demanda removerImagemEspecifica(Long id, String imagemUrl);
+
+    Demanda adicionarAnexo(Long id, String nome, String url);
+
+    Demanda removerAnexo(Long id, String anexoId);
+
+    Demanda definirCapaAnexo(Long id, String anexoId, boolean capa);
+
+    Demanda renomearAnexo(Long id, String anexoId, String novoNome);
+
+    Demanda comentarAnexo(Long id, String anexoId, String texto, String autor);
+
     void excluir(Long id);
 }
+

@@ -21,13 +21,14 @@
             Filtro ativo:
             <strong th:if="${filtroTermo != null and !#strings.isEmpty(filtroTermo)}" th:text="'«' + ${filtroTermo} + '»'">termo</strong>
         </span>
-        <a th:href="@{/}" class="btn-clear-filter" aria-label="Remover filtros e exibir todas as demandas">
+        <a th:href="@{/quadro}" class="btn-clear-filter" aria-label="Remover filtros e exibir todas as demandas">
             ✕ Limpar filtro
         </a>
     </div>
 
     <!-- ── Lista Horizontal de Colunas Kanban ────────────────────────── -->
-    <div class="board-columns-track" id="board-columns-track" aria-label="Colunas do Quadro Kanban">
+    <div class="board-columns-track" id="board-columns-track" th:attr="data-projeto-id=${projetoId}" aria-label="Colunas do Quadro Kanban">
+
 
         <!-- Itera sobre as colunas usando o fragmento coluna -->
         <th:block th:each="coluna : ${colunas}">
@@ -107,8 +108,75 @@
     </div>
 </div>
 
+<!-- ── Visualizador Ampliado de Imagens (Lightbox estilo Trello) ────────── -->
+<div id="image-viewer-lightbox" class="image-viewer-backdrop is-hidden" role="dialog" aria-modal="true" aria-label="Visualizador de imagem ampliada" onclick="window.fecharVisualizadorImagem()">
+    <!-- Botão Fechar no Canto Superior Direito -->
+    <button type="button" class="btn-viewer-close" onclick="event.stopPropagation(); window.fecharVisualizadorImagem()" aria-label="Fechar visualizador" title="Fechar (Esc)">✕</button>
+
+    <!-- Botão Navegação Anterior -->
+    <button type="button" id="btn-viewer-prev" class="btn-viewer-nav btn-viewer-prev is-hidden" onclick="event.stopPropagation(); window.navegarVisualizadorImagem(-1)" aria-label="Imagem anterior" title="Anterior (←)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+    </button>
+
+    <!-- Área Central da Imagem -->
+    <div class="image-viewer-content" onclick="event.stopPropagation()">
+        <img id="viewer-img-element" src="" alt="Imagem ampliada" class="viewer-image" />
+    </div>
+
+    <!-- Botão Navegação Próxima -->
+    <button type="button" id="btn-viewer-next" class="btn-viewer-nav btn-viewer-next is-hidden" onclick="event.stopPropagation(); window.navegarVisualizadorImagem(1)" aria-label="Próxima imagem" title="Próxima (→)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+    </button>
+
+    <!-- Rodapé com Informações e Ações do Anexo (Imagem 3 de referência) -->
+    <div class="image-viewer-footer" onclick="event.stopPropagation()">
+        <div class="viewer-info">
+            <h3 id="viewer-file-title" class="viewer-title">Nome do arquivo.png</h3>
+            <div id="viewer-file-meta" class="viewer-meta">Adicionado há pouco • 1 de 1</div>
+        </div>
+        <div class="viewer-actions">
+            <a id="viewer-action-open" href="#" target="_blank" rel="noopener noreferrer" class="btn-viewer-action">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                <span>Abrir em uma nova guia</span>
+            </a>
+            <a id="viewer-action-download" href="#" download class="btn-viewer-action">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Baixar</span>
+            </a>
+            <button type="button" id="viewer-action-capa" class="btn-viewer-action" onclick="window.toggleCapaVisualizador()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span id="viewer-action-capa-text">Tornar capa</span>
+            </button>
+            <button type="button" id="viewer-action-delete" class="btn-viewer-action btn-viewer-action-danger" onclick="window.excluirAnexoVisualizador()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Excluir</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal de Autenticação Supabase -->
 <div th:replace="~{fragments/auth-modal :: authModal}"></div>
+
 
 
 

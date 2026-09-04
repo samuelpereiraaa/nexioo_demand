@@ -25,6 +25,11 @@ public class ProjetoServiceImpl implements ProjetoService {
     }
 
     @Override
+    public List<Projeto> listarPorArea(Long areaTrabalhoId) {
+        return projetoRepository.listarPorArea(areaTrabalhoId);
+    }
+
+    @Override
     public List<Projeto> listarRecentes() {
         List<Projeto> recentes = projetoRepository.listarRecentes();
         if (recentes.isEmpty()) {
@@ -54,10 +59,16 @@ public class ProjetoServiceImpl implements ProjetoService {
         if (form.getGradiente() != null && !form.getGradiente().isBlank()) {
             projeto.setGradiente(form.getGradiente());
         }
+        if (form.getAreaTrabalhoId() != null) {
+            projeto.setAreaTrabalhoId(form.getAreaTrabalhoId());
+        } else {
+            projeto.setAreaTrabalhoId(1L);
+        }
         projeto.setRecentementeVisualizado(true);
 
         return projetoRepository.salvar(projeto);
     }
+
 
     @Override
     public void excluir(Long id) {

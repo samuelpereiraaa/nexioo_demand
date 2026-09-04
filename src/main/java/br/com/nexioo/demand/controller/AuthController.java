@@ -7,7 +7,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -73,19 +75,41 @@ public class AuthController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpSession session) {
+    public String logout(HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
         }
+
+        javax.servlet.http.Cookie cookie = new javax.servlet.http.Cookie("JSESSIONID", null);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
         return "redirect:/login";
     }
 
     @PostMapping("/logout")
     @ResponseBody
-    public ResponseEntity<String> logoutPost(HttpSession session) {
+    public ResponseEntity<String> logoutPost(HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
         }
+
+        javax.servlet.http.Cookie cookie = new javax.servlet.http.Cookie("JSESSIONID", null);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
         return ResponseEntity.ok("Deslogado com sucesso");
     }
 }

@@ -116,15 +116,11 @@
             var iniciais = 'SP';
             var emailPrefix = user.email.split('@')[0];
             if (user.user_metadata && user.user_metadata.full_name) {
-                var parts = user.user_metadata.full_name.trim().split(' ');
-                iniciais = (parts[0].charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
+                var parts = user.user_metadata.full_name.trim().split(/\s+/);
+                iniciais = parts.length === 1 ? parts[0].charAt(0).toUpperCase() : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
             } else if (emailPrefix) {
-                if (emailPrefix.indexOf('.') !== -1 || emailPrefix.indexOf('_') !== -1) {
-                    var p = emailPrefix.split(/[._-]/);
-                    iniciais = (p[0].charAt(0) + (p[1] ? p[1].charAt(0) : '')).toUpperCase();
-                } else {
-                    iniciais = emailPrefix.substring(0, 2).toUpperCase();
-                }
+                var p = emailPrefix.replace(/[._-]/g, ' ').trim().split(/\s+/);
+                iniciais = p.length === 1 ? p[0].charAt(0).toUpperCase() : (p[0].charAt(0) + p[p.length - 1].charAt(0)).toUpperCase();
             }
             avatarEls.forEach(function (el) {
                 el.textContent = iniciais;
@@ -134,18 +130,16 @@
                 w.title = 'Usuário logado: ' + user.email;
             });
             if (authBtn) {
-                authBtn.textContent = 'Sair (' + user.email.split('@')[0] + ')';
+                authBtn.textContent = 'Sair';
                 authBtn.setAttribute('data-logged', 'true');
             }
         } else {
-            avatarEls.forEach(function (el) {
-                el.textContent = 'SP';
-            });
             if (authBtn) {
-                authBtn.textContent = 'Entrar';
-                authBtn.removeAttribute('data-logged');
+                authBtn.textContent = 'Sair';
+                authBtn.setAttribute('data-logged', 'true');
             }
         }
+
     }
 
 
@@ -159,17 +153,21 @@
 
         // Event listener no botão da topbar
         document.addEventListener('click', function (e) {
-            if (e.target && e.target.id === 'btn-topbar-auth') {
-                if (e.target.hasAttribute('data-logged')) {
-                    signOut().then(function() {
-                        if (window.exibirToast) window.exibirToast('Sessão encerrada com sucesso.', 'sucesso');
-                    });
-                } else {
-                    if (window.abrirModalAuth) window.abrirModalAuth();
+            var btn = e.target.closest('#btn-topbar-auth') || (e.target && e.target.id === 'btn-topbar-auth' ? e.target : null);
+            if (btn) {
+                e.preventDefault();
+                if (typeof signOut === 'function') {
+                    try { signOut(); } catch (err) {}
                 }
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                } catch (err) {}
+                window.location.href = '/logout';
             }
         });
     }
+
 
     // Inicialização ao carregar a página
     document.addEventListener('DOMContentLoaded', function () {

@@ -19,26 +19,26 @@
             </a>
 
             <div class="board-title-badge" role="heading" aria-level="1">
-                <span class="board-title-text">Quadro de demandas</span>
+                <span class="board-title-text" th:text="${projetoAtual != null ? projetoAtual.nome : 'Quadro de demandas'}">Quadro de demandas</span>
             </div>
         </div>
 
         <!-- ── Lado Direito: Avatar ─── -->
         <div class="topbar-right">
 
-
-
-            <!-- Avatar do Usuário -->
-            <div class="user-avatar-wrapper" title="Usuário logado: Samuel Oliveira">
-                <div class="user-avatar" aria-label="Perfil do usuário: SO">
-                    <span>SO</span>
+            <!-- Avatar do Usuário Dinâmico -->
+            <div class="user-avatar-wrapper" th:title="'Usuário logado: ' + ${usuarioLogadoNome}">
+                <div class="user-avatar" th:attr="aria-label='Perfil do usuário: ' + ${usuarioIniciais}">
+                    <span th:text="${usuarioIniciais}">SP</span>
                 </div>
             </div>
 
-            <!-- Botão de Autenticação Supabase -->
-            <button type="button" id="btn-topbar-auth" class="btn-topbar-create" style="background: rgba(255, 255, 255, 0.06); border: 1px solid var(--color-border); color: #b6c2cf; font-weight: 600; font-size: 13px; margin-left: 8px;">
-                Entrar
+            <!-- Botão Sair Sofisticado em Preto -->
+            <button type="button" id="btn-topbar-auth" class="btn-topbar-logout" data-logged="true" title="Sair do sistema">
+                Sair
             </button>
+
+
 
 
         </div>

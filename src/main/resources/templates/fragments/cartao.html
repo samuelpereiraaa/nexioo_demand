@@ -17,9 +17,13 @@
          role="button">
 
     <!-- ── Capa do cartão (imagem anexada fixada no topo) ── -->
-    <div th:if="${demanda.imagemUrl != null and !demanda.imagemUrl.isBlank()}" class="card-cover-wrapper">
-        <img th:src="${demanda.imagemUrl}" alt="Capa da demanda" class="card-cover-image" />
+    <div th:if="${demanda.imagemUrl != null and !demanda.imagemUrl.isBlank()}"
+         class="card-cover-wrapper"
+         th:attr="data-cover-url=${demanda.imagemUrl}, data-cover-title=${demanda.titulo}"
+         onclick="event.stopPropagation(); window.abrirVisualizadorImagem(this.getAttribute('data-cover-url'), this.getAttribute('data-cover-title') || 'Capa', null);">
+        <img th:src="${demanda.imagemUrl}" alt="Capa da demanda" class="card-cover-image" style="cursor: pointer;" />
     </div>
+
 
     <!-- ── Conteúdo principal do cartão ── -->
     <div class="card-main-content">
@@ -52,10 +56,77 @@
             </button>
         </form>
 
-        <!-- ── Corpo do cartão: apenas o título da demanda ── -->
+        <!-- ── Corpo do cartão ── -->
         <div class="card-body">
             <p class="card-title" th:text="${demanda.titulo}">Título da Demanda</p>
+
+            <!-- Metadados compactos (etiquetas, prazo, checklist, anexos, membros) -->
+            <div class="card-meta-row" th:if="${(demanda.etiquetas != null and !demanda.etiquetas.isEmpty()) or demanda.prazo != null or demanda.hasChecklist() or (demanda.descricao != null and !demanda.descricao.isBlank()) or demanda.hasImagem() or (demanda.membros != null and !demanda.membros.isEmpty())}">
+
+                <!-- Etiquetas -->
+                <span th:each="tag : ${demanda.etiquetas}"
+                      class="card-mini-tag"
+                      th:style="'color:' + ${tag.corHex} + '; border-color:' + ${tag.corHex} + '; background:' + ${tag.corHex} + '1a;'"
+                      th:text="${tag.nome}">Tag</span>
+
+                <!-- Prazo / Data -->
+                <span th:if="${demanda.prazo != null}"
+                      class="card-badge card-badge--date"
+                      th:classappend="${demanda.isPrazoVencido()} ? ' card-badge--expired' : ''"
+                      th:title="${demanda.isPrazoVencido()} ? 'Prazo vencido' : 'Prazo de entrega'">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span th:text="${#temporals.format(demanda.prazo, 'dd/MM')}">12/05</span>
+                </span>
+
+                <!-- Indicador de Descrição -->
+                <span th:if="${demanda.descricao != null and !demanda.descricao.isBlank()}"
+                      class="card-badge"
+                      title="Possui descrição detalhada"
+                      style="color: var(--color-text-muted);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="21" y1="10" x2="3" y2="10"></line>
+                        <line x1="21" y1="6" x2="3" y2="6"></line>
+                        <line x1="21" y1="14" x2="3" y2="14"></line>
+                        <line x1="21" y1="18" x2="3" y2="18"></line>
+                    </svg>
+                </span>
+
+                <!-- Checklist -->
+                <span th:if="${demanda.hasChecklist()}"
+                      class="card-badge card-badge--checklist"
+                      th:title="'Checklist: ' + ${demanda.checklistProgressoTexto}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    <span th:text="${demanda.checklistProgressoTexto}">0/0</span>
+                </span>
+
+                <!-- Anexos (estilo Trello) -->
+                <span th:if="${demanda.hasAnexos()}"
+                      class="card-badge"
+                      th:title="'Anexos: ' + ${demanda.quantidadeAnexos}"
+                      style="color: var(--color-text-muted);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                    </svg>
+                    <span th:text="${demanda.quantidadeAnexos}">1</span>
+                </span>
+
+
+                <!-- Membros / Responsáveis -->
+                <span th:each="mb : ${demanda.membros}"
+                      class="card-assignee-avatar avatar-theme--0"
+                      th:title="${mb}">
+                    <span th:text="${#strings.substring(mb, 0, 2).toUpperCase()}">SO</span>
+                </span>
+
+            </div>
         </div>
+
 
         <!-- ── Grupo de Ações Rápidas no Hover (Imagens 2 e 3) ── -->
         <div class="card-actions-quick-group">

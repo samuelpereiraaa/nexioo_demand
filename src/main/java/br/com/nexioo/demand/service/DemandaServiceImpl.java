@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
 
 /**
  * Implementação completa dos casos de uso de demandas.
@@ -53,9 +55,24 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
+    public List<Demanda> listarPorProjeto(Long projetoId) {
+        if (projetoId == null) {
+            return listarTodas();
+        }
+        return demandaRepository.listarTodas().stream()
+                .filter(d -> d.getProjetoId() == null || d.getProjetoId().equals(projetoId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Map<Coluna, List<Demanda>> listarPorColuna() {
+        return listarPorColuna(null);
+    }
+
+    @Override
+    public Map<Coluna, List<Demanda>> listarPorColuna(Long projetoId) {
         Map<Coluna, List<Demanda>> resultado = inicializarMapaPorColuna();
-        for (Demanda demanda : demandaRepository.listarTodas()) {
+        for (Demanda demanda : listarPorProjeto(projetoId)) {
             if (resultado.containsKey(demanda.getColuna())) {
                 resultado.get(demanda.getColuna()).add(demanda);
             } else {
@@ -67,8 +84,13 @@ public class DemandaServiceImpl implements DemandaService {
 
     @Override
     public Map<Coluna, List<Demanda>> filtrar(String termo, Prioridade prioridade, String responsavel) {
+        return filtrar(null, termo, prioridade, responsavel);
+    }
+
+    @Override
+    public Map<Coluna, List<Demanda>> filtrar(Long projetoId, String termo, Prioridade prioridade, String responsavel) {
         Map<Coluna, List<Demanda>> resultado = inicializarMapaPorColuna();
-        for (Demanda demanda : demandaRepository.listarTodas()) {
+        for (Demanda demanda : listarPorProjeto(projetoId)) {
             if (corresponde(demanda, termo, prioridade, responsavel)) {
                 if (resultado.containsKey(demanda.getColuna())) {
                     resultado.get(demanda.getColuna()).add(demanda);
@@ -79,6 +101,7 @@ public class DemandaServiceImpl implements DemandaService {
         }
         return resultado;
     }
+
 
     @Override
     public Demanda editar(Long id, DemandaForm form) {
@@ -154,7 +177,7 @@ public class DemandaServiceImpl implements DemandaService {
     public Demanda adicionarImagem(Long id, String imagemUrl) {
         Demanda demanda = buscarPorId(id);
         if (imagemUrl != null && !imagemUrl.isBlank()) {
-            demanda.setImagemUrl(imagemUrl.trim());
+            demanda.adicionarImagemNaLista(imagemUrl.trim());
             demanda.setAtualizadoEm(LocalDateTime.now());
             demanda.registrarAtividade("Samuel Oliveira", "anexou uma imagem à demanda");
             demandaRepository.salvar(demanda);
@@ -166,10 +189,87 @@ public class DemandaServiceImpl implements DemandaService {
     public Demanda removerImagem(Long id) {
         Demanda demanda = buscarPorId(id);
         demanda.setImagemUrl(null);
+        demanda.getAnexos().clear();
         demanda.setAtualizadoEm(LocalDateTime.now());
-        demanda.registrarAtividade("Samuel Oliveira", "removeu a imagem da demanda");
+        demanda.registrarAtividade("Samuel Oliveira", "removeu os anexos da demanda");
         return demandaRepository.salvar(demanda);
     }
+
+    @Override
+    public Demanda removerImagemEspecifica(Long id, String imagemUrl) {
+        Demanda demanda = buscarPorId(id);
+        if (imagemUrl != null) {
+            demanda.removerImagemDaLista(imagemUrl);
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            demanda.registrarAtividade("Samuel Oliveira", "removeu uma imagem da demanda");
+            demandaRepository.salvar(demanda);
+        }
+        return demanda;
+    }
+
+    @Override
+    public Demanda adicionarAnexo(Long id, String nome, String url) {
+        Demanda demanda = buscarPorId(id);
+        if (url != null && !url.isBlank()) {
+            Anexo anexo = demanda.adicionarAnexo(nome, url.trim());
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            demanda.registrarAtividade("Samuel Oliveira", "anexou " + anexo.getNome() + " a este cartão");
+            demandaRepository.salvar(demanda);
+        }
+        return demanda;
+    }
+
+    @Override
+    public Demanda removerAnexo(Long id, String anexoId) {
+        Demanda demanda = buscarPorId(id);
+        if (anexoId != null) {
+            Anexo a = demanda.getAnexoById(anexoId);
+            String nome = a != null ? a.getNome() : "anexo";
+            if (demanda.removerAnexo(anexoId)) {
+                demanda.setAtualizadoEm(LocalDateTime.now());
+                demanda.registrarAtividade("Samuel Oliveira", "removeu o anexo \"" + nome + "\"");
+                demandaRepository.salvar(demanda);
+            }
+        }
+        return demanda;
+    }
+
+    @Override
+    public Demanda definirCapaAnexo(Long id, String anexoId, boolean capa) {
+        Demanda demanda = buscarPorId(id);
+        if (anexoId != null) {
+            demanda.definirCapa(anexoId, capa);
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            demanda.registrarAtividade("Samuel Oliveira", capa ? "definiu o anexo como capa" : "removeu a capa deste cartão");
+            demandaRepository.salvar(demanda);
+        }
+        return demanda;
+    }
+
+    @Override
+    public Demanda renomearAnexo(Long id, String anexoId, String novoNome) {
+        Demanda demanda = buscarPorId(id);
+        if (anexoId != null && novoNome != null && !novoNome.isBlank()) {
+            demanda.renomearAnexo(anexoId, novoNome);
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            demanda.registrarAtividade("Samuel Oliveira", "renomeou o anexo para \"" + novoNome.trim() + "\"");
+            demandaRepository.salvar(demanda);
+        }
+        return demanda;
+    }
+
+    @Override
+    public Demanda comentarAnexo(Long id, String anexoId, String texto, String autor) {
+        Demanda demanda = buscarPorId(id);
+        Anexo a = demanda.getAnexoById(anexoId);
+        String prefixo = (a != null) ? ("[" + a.getNome() + "] ") : "";
+        String autorFinal = (autor != null && !autor.isBlank()) ? autor : "Samuel Oliveira";
+        demanda.registrarComentario(autorFinal, prefixo + (texto != null ? texto.trim() : ""));
+        demanda.setAtualizadoEm(LocalDateTime.now());
+        return demandaRepository.salvar(demanda);
+    }
+
+
 
 
     @Override
@@ -192,9 +292,12 @@ public class DemandaServiceImpl implements DemandaService {
         Demanda demanda = buscarPorId(id);
         String nomeSanitizado = sanitizarTexto(nome);
         if (nomeSanitizado != null && !nomeSanitizado.isBlank()) {
-            String etiquetaId = nomeSanitizado.toLowerCase().replaceAll("\\s+", "-");
-            Etiqueta etiqueta = new Etiqueta(etiquetaId, nomeSanitizado, corHex != null ? corHex : "#00E6A8");
-            if (!demanda.getEtiquetas().contains(etiqueta)) {
+            boolean jaExiste = demanda.getEtiquetas().stream()
+                    .anyMatch(e -> e.getNome().equalsIgnoreCase(nomeSanitizado));
+            if (!jaExiste) {
+                String etiquetaId = nomeSanitizado.toLowerCase().replaceAll("\\s+", "-");
+                String corValida = (corHex != null && corHex.matches("^#(?:[0-9a-fA-F]{3}){1,2}$")) ? corHex : "#00E6A8";
+                Etiqueta etiqueta = new Etiqueta(etiquetaId, nomeSanitizado, corValida);
                 demanda.getEtiquetas().add(etiqueta);
                 demanda.setAtualizadoEm(LocalDateTime.now());
                 demanda.registrarAtividade("Samuel Oliveira", "adicionou a etiqueta \"" + nomeSanitizado + "\"");
@@ -207,14 +310,18 @@ public class DemandaServiceImpl implements DemandaService {
     @Override
     public Demanda removerEtiqueta(Long id, String etiquetaId) {
         Demanda demanda = buscarPorId(id);
-        boolean removido = demanda.getEtiquetas().removeIf(e -> e.getId().equalsIgnoreCase(etiquetaId));
-        if (removido) {
-            demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "removeu uma etiqueta");
-            demandaRepository.salvar(demanda);
+        if (etiquetaId != null && !etiquetaId.isBlank()) {
+            boolean removido = demanda.getEtiquetas().removeIf(e ->
+                    e.getId().equalsIgnoreCase(etiquetaId) || e.getNome().equalsIgnoreCase(etiquetaId));
+            if (removido) {
+                demanda.setAtualizadoEm(LocalDateTime.now());
+                demanda.registrarAtividade("Samuel Oliveira", "removeu uma etiqueta");
+                demandaRepository.salvar(demanda);
+            }
         }
         return demanda;
     }
+
 
     @Override
     public Demanda definirPrazo(Long id, LocalDate prazo) {
@@ -442,7 +549,11 @@ public class DemandaServiceImpl implements DemandaService {
             demanda.getMembros().add(resp);
         }
         demanda.setPrazo(form.getPrazo());
+        if (form.getProjetoId() != null) {
+            demanda.setProjetoId(form.getProjetoId());
+        }
     }
+
 
     private Map<Coluna, List<Demanda>> inicializarMapaPorColuna() {
         Map<Coluna, List<Demanda>> mapa = new LinkedHashMap<>();

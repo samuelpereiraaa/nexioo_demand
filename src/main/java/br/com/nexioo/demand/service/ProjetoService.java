@@ -12,7 +12,10 @@ public interface ProjetoService {
 
     List<Projeto> listarTodos();
 
+    List<Projeto> listarPorArea(Long areaTrabalhoId);
+
     List<Projeto> listarRecentes();
+
 
     Projeto buscarPorId(Long id);
 

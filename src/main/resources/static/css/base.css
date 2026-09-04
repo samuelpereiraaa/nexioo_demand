@@ -283,6 +283,45 @@ a {
     flex-shrink: 0;
 }
 
+/* ── Botão Sair Sofisticado em Preto ── */
+.btn-topbar-logout {
+    background: #0f1412;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-left: 8px;
+    text-decoration: none;
+    transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.btn-topbar-logout:hover {
+    background: #19221f;
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.btn-topbar-logout:focus-visible {
+    outline: 2px solid var(--color-accent, #00E6A8);
+    outline-offset: 2px;
+}
+
+.btn-topbar-logout:active {
+    transform: scale(0.97);
+    background: #080c0a;
+}
+
+
 /* ── Campo de Pesquisa Integrado ── */
 .search-form {
     display: flex;

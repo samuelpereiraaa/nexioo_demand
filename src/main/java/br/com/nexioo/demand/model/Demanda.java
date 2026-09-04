@@ -22,6 +22,7 @@ public class Demanda {
 
     private boolean concluido = false;
     private String imagemUrl;
+    private Long projetoId = 100L;
 
     private List<Etiqueta> etiquetas = new ArrayList<>();
 
@@ -211,7 +212,16 @@ public class Demanda {
         this.atualizadoEm = atualizadoEm;
     }
 
+    public Long getProjetoId() {
+        return projetoId;
+    }
+
+    public void setProjetoId(Long projetoId) {
+        this.projetoId = projetoId;
+    }
+
     public List<Etiqueta> getEtiquetas() {
+
         return etiquetas;
     }
 
@@ -263,8 +273,152 @@ public class Demanda {
         this.concluido = concluido;
     }
 
-    public void setConcluida(boolean concluida) {
-        this.concluido = concluida;
+    private List<Anexo> anexos = new ArrayList<>();
+
+    public boolean hasAnexos() {
+        return anexos != null && !anexos.isEmpty();
+    }
+
+    public List<Anexo> getAnexos() {
+        if (anexos == null) {
+            anexos = new ArrayList<>();
+        }
+        return anexos;
+    }
+
+    public void setAnexos(List<Anexo> anexos) {
+        this.anexos = anexos != null ? anexos : new ArrayList<>();
+        sincronizarCapa();
+    }
+
+    public Anexo getAnexoById(String anexoId) {
+        if (anexos == null || anexoId == null) return null;
+        for (Anexo a : anexos) {
+            if (anexoId.equals(a.getId())) return a;
+        }
+        return null;
+    }
+
+    public Anexo adicionarAnexo(String nome, String url) {
+        if (this.anexos == null) {
+            this.anexos = new ArrayList<>();
+        }
+        Anexo novo = new Anexo(nome, url);
+        // Se for o primeiro anexo do tipo imagem, define como capa automaticamente (estilo Trello)
+        boolean temImagemCapa = this.anexos.stream().anyMatch(Anexo::isCapa);
+        if (!temImagemCapa && novo.isImagem()) {
+            novo.setCapa(true);
+            this.imagemUrl = url;
+        }
+        this.anexos.add(novo);
+        return novo;
+    }
+
+    public boolean removerAnexo(String anexoId) {
+        if (anexos == null || anexoId == null) return false;
+        Anexo alvo = getAnexoById(anexoId);
+        if (alvo != null) {
+            anexos.remove(alvo);
+            if (alvo.isCapa()) {
+                Anexo proximaImagem = anexos.stream().filter(Anexo::isImagem).findFirst().orElse(null);
+                if (proximaImagem != null) {
+                    proximaImagem.setCapa(true);
+                    this.imagemUrl = proximaImagem.getUrl();
+                } else {
+                    this.imagemUrl = null;
+                }
+            }
+            if (anexos.isEmpty()) {
+                this.imagemUrl = null;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public void definirCapa(String anexoId, boolean capa) {
+        if (anexos == null) return;
+        for (Anexo a : anexos) {
+            if (a.getId().equals(anexoId)) {
+                a.setCapa(capa);
+                if (capa) {
+                    this.imagemUrl = a.getUrl();
+                }
+            } else if (capa) {
+                a.setCapa(false);
+            }
+        }
+        if (!capa && (imagemUrl != null)) {
+            boolean temCapa = anexos.stream().anyMatch(Anexo::isCapa);
+            if (!temCapa) {
+                this.imagemUrl = null;
+            }
+        }
+    }
+
+    public void renomearAnexo(String anexoId, String novoNome) {
+        Anexo a = getAnexoById(anexoId);
+        if (a != null && novoNome != null && !novoNome.isBlank()) {
+            a.setNome(novoNome.trim());
+        }
+    }
+
+    private void sincronizarCapa() {
+        if (anexos == null || anexos.isEmpty()) {
+            this.imagemUrl = null;
+            return;
+        }
+        Anexo capa = anexos.stream().filter(Anexo::isCapa).findFirst().orElse(null);
+        if (capa != null) {
+            this.imagemUrl = capa.getUrl();
+        } else {
+            this.imagemUrl = null;
+        }
+    }
+
+    public boolean hasImagem() {
+        return (imagemUrl != null && !imagemUrl.isBlank()) || hasAnexos();
+    }
+
+    public List<String> getImagens() {
+        List<String> list = new ArrayList<>();
+        if (anexos != null) {
+            for (Anexo a : anexos) {
+                list.add(a.getUrl());
+            }
+        }
+        return list;
+    }
+
+    public void setImagens(List<String> imagens) {
+        if (imagens != null) {
+            for (String url : imagens) {
+                adicionarImagemNaLista(url);
+            }
+        }
+    }
+
+    public void adicionarImagemNaLista(String url) {
+        if (url == null || url.isBlank()) return;
+        String nome = "Anexo " + (getQuantidadeAnexos() + 1);
+        if (url.contains("/")) {
+            nome = url.substring(url.lastIndexOf('/') + 1);
+            if (nome.contains("?")) nome = nome.substring(0, nome.indexOf('?'));
+        }
+        adicionarAnexo(nome, url);
+    }
+
+    public void removerImagemDaLista(String url) {
+        if (anexos != null && url != null) {
+            Anexo alvo = anexos.stream().filter(a -> url.equals(a.getUrl())).findFirst().orElse(null);
+            if (alvo != null) {
+                removerAnexo(alvo.getId());
+            }
+        }
+    }
+
+    public int getQuantidadeAnexos() {
+        return anexos != null ? anexos.size() : 0;
     }
 
     public String getImagemUrl() {
@@ -274,4 +428,9 @@ public class Demanda {
     public void setImagemUrl(String imagemUrl) {
         this.imagemUrl = imagemUrl;
     }
+
+    public boolean hasCapa() {
+        return imagemUrl != null && !imagemUrl.isBlank();
+    }
 }
+
