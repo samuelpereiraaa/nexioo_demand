@@ -40,6 +40,9 @@ class AuthInterceptorTest {
     @MockBean
     private br.com.nexioo.demand.service.AreaTrabalhoService areaTrabalhoService;
 
+    @MockBean
+    private br.com.nexioo.demand.service.SupabaseAuthService supabaseAuthService;
+
 
 
     @Test

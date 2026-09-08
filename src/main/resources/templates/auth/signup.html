@@ -61,10 +61,11 @@
         </p>
 
         <!-- Error Alert Banner -->
-        <div id="auth-error-banner" class="auth-error-alert" role="alert"></div>
+        <div id="auth-error-banner" class="auth-error-alert" role="alert" th:if="${erro}" th:text="${erro}" style="display: block;"></div>
+        <div id="auth-error-banner" class="auth-error-alert" role="alert" th:unless="${erro}"></div>
 
         <!-- Signup Form -->
-        <form class="auth-form" onsubmit="window.handleSignupSubmit(event)">
+        <form class="auth-form" action="/signup" method="post" onsubmit="window.handleSignupSubmit(event)">
 
             <!-- Email Input -->
             <div class="input-group-icon">
@@ -133,48 +134,109 @@
 <script>
     function handleSignupSubmit(e) {
         e.preventDefault();
-        var email = document.getElementById('email').value;
-        var password = document.getElementById('password').value;
-        var confirmPassword = document.getElementById('confirm-password').value;
+        var emailInput = document.getElementById('email');
+        var passwordInput = document.getElementById('password');
+        var confirmPasswordInput = document.getElementById('confirm-password');
+        var email = emailInput ? emailInput.value.trim() : '';
+        var password = passwordInput ? passwordInput.value : '';
+        var confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
         var btn = document.getElementById('btn-signup');
         var banner = document.getElementById('auth-error-banner');
 
-        banner.style.display = 'none';
+        if (banner) banner.style.display = 'none';
+
+        if (!email || !password) {
+            if (banner) {
+                banner.textContent = 'E-mail e senha são obrigatórios.';
+                banner.style.display = 'block';
+            }
+            return;
+        }
 
         if (password !== confirmPassword) {
-            banner.textContent = 'As senhas não coincidem.';
-            banner.style.display = 'block';
+            if (banner) {
+                banner.textContent = 'As senhas não coincidem.';
+                banner.style.display = 'block';
+            }
             return;
         }
 
         btn.disabled = true;
         btn.innerHTML = '<span>Creating account...</span>';
 
-        var params = new URLSearchParams();
-        params.append('email', email);
-        params.append('password', password);
+        function postToBackend(payload) {
+            var params = new URLSearchParams();
+            if (payload.token) params.append('token', payload.token);
+            if (payload.email) params.append('email', payload.email);
+            if (payload.password) params.append('password', payload.password);
 
-        fetch('/signup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: params.toString()
-        })
-        .then(function(res) {
-            if (!res.ok) throw new Error('Erro ao criar conta.');
-            window.location.href = '/projetos';
-        })
+            return fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: params.toString()
+            })
+            .then(function(res) {
+                return res.json().then(function(data) {
+                    if (!res.ok) {
+                        throw new Error(data.mensagem || 'Erro ao criar conta.');
+                    }
+                    window.location.href = data.redirect || '/projetos';
+                }).catch(function(jsonErr) {
+                    if (!res.ok) throw new Error(jsonErr.message || 'Erro ao criar conta.');
+                    window.location.href = '/projetos';
+                });
+            });
+        }
 
-        .catch(function(err) {
-            banner.textContent = err.message || 'Erro ao criar conta.';
-            banner.style.display = 'block';
-        })
-        .finally(function() {
-            btn.disabled = false;
-            btn.innerHTML = '<span>Sign up</span>';
-        });
+        if (window.supabaseAuth && typeof window.supabaseAuth.signUp === 'function') {
+            window.supabaseAuth.signUp(email, password)
+                .then(function(data) {
+                    var token = (data && data.session && data.session.access_token) ? data.session.access_token : '';
+                    return postToBackend({ token: token, email: email, password: password });
+                })
+                .catch(function(err) {
+                    var errorMsg = (err && err.message) ? err.message : '';
+                    if (errorMsg.indexOf('User already registered') !== -1) {
+                        if (banner) {
+                            banner.textContent = 'Este e-mail já está cadastrado.';
+                            banner.style.display = 'block';
+                        }
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>Sign up</span>';
+                        return;
+                    }
+                    return postToBackend({ email: email, password: password })
+                        .catch(function(beErr) {
+                            if (banner) {
+                                banner.textContent = beErr.message || 'Erro ao criar conta.';
+                                banner.style.display = 'block';
+                            }
+                        })
+                        .finally(function() {
+                            btn.disabled = false;
+                            btn.innerHTML = '<span>Sign up</span>';
+                        });
+                })
+                .finally(function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Sign up</span>';
+                });
+        } else {
+            postToBackend({ email: email, password: password })
+                .catch(function(err) {
+                    if (banner) {
+                        banner.textContent = err.message || 'Erro ao criar conta.';
+                        banner.style.display = 'block';
+                    }
+                })
+                .finally(function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Sign up</span>';
+                });
+        }
     }
 </script>
 

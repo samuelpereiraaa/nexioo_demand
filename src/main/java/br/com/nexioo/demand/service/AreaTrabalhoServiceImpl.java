@@ -78,14 +78,15 @@ public class AreaTrabalhoServiceImpl implements AreaTrabalhoService {
 
     @Override
     public AreaTrabalho obterOuCriarPadrao(String usuario) {
-        List<AreaTrabalho> existentes = areaTrabalhoRepository.listarTodas();
+        String userSanitizado = (usuario != null && !usuario.isBlank()) ? usuario.trim() : "samuel@nexioo.com.br";
+        List<AreaTrabalho> existentes = areaTrabalhoRepository.listarPorUsuario(userSanitizado);
         if (!existentes.isEmpty()) {
             return existentes.get(0);
         }
         AreaTrabalho padrao = new AreaTrabalho();
         padrao.setNome("Área de trabalho Nexioo Demand");
         padrao.setInicial("Á");
-        padrao.setUsuarioProprietario(usuario != null ? usuario.trim() : "samuel@nexioo.com.br");
+        padrao.setUsuarioProprietario(userSanitizado);
         return areaTrabalhoRepository.salvar(padrao);
     }
 }

@@ -59,10 +59,11 @@
         </p>
 
         <!-- Error Alert Banner -->
-        <div id="auth-error-banner" class="auth-error-alert" role="alert"></div>
+        <div id="auth-error-banner" class="auth-error-alert" role="alert" th:if="${erro}" th:text="${erro}" style="display: block;"></div>
+        <div id="auth-error-banner" class="auth-error-alert" role="alert" th:unless="${erro}"></div>
 
         <!-- Login Form -->
-        <form class="auth-form" onsubmit="window.handleLoginSubmit(event)">
+        <form class="auth-form" action="/login" method="post" onsubmit="window.handleLoginSubmit(event)">
 
             <!-- Email Input -->
             <div class="input-group-icon">
@@ -113,42 +114,102 @@
 <script>
     function handleLoginSubmit(e) {
         e.preventDefault();
-        var email = document.getElementById('email').value;
-        var password = document.getElementById('password').value;
+        var emailInput = document.getElementById('email');
+        var passwordInput = document.getElementById('password');
+        var email = emailInput ? emailInput.value.trim() : '';
+        var password = passwordInput ? passwordInput.value : '';
         var btn = document.getElementById('btn-login');
         var banner = document.getElementById('auth-error-banner');
 
-        if (!email || !password) return;
+        if (!email || !password) {
+            if (banner) {
+                banner.textContent = 'E-mail e senha são obrigatórios.';
+                banner.style.display = 'block';
+            }
+            return;
+        }
 
-        banner.style.display = 'none';
+        if (banner) banner.style.display = 'none';
         btn.disabled = true;
         btn.innerHTML = '<span>Logging in...</span>';
 
-        var params = new URLSearchParams();
-        params.append('email', email);
-        params.append('password', password);
+        function postToBackend(payload) {
+            var params = new URLSearchParams();
+            if (payload.token) params.append('token', payload.token);
+            if (payload.email) params.append('email', payload.email);
+            if (payload.password) params.append('password', payload.password);
 
-        fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: params.toString()
-        })
-        .then(function(res) {
-            if (!res.ok) throw new Error('Credenciais inválidas.');
-            window.location.href = '/projetos';
-        })
+            return fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: params.toString()
+            })
+            .then(function(res) {
+                return res.json().then(function(data) {
+                    if (!res.ok) {
+                        var msg = data.mensagem || 'E-mail ou senha inválidos.';
+                        throw new Error(msg);
+                    }
+                    window.location.href = data.redirect || '/projetos';
+                }).catch(function(jsonErr) {
+                    if (!res.ok) {
+                        throw new Error(jsonErr.message || 'E-mail ou senha inválidos.');
+                    }
+                    window.location.href = '/projetos';
+                });
+            });
+        }
 
-        .catch(function(err) {
-            banner.textContent = err.message || 'Erro ao realizar login.';
-            banner.style.display = 'block';
-        })
-        .finally(function() {
-            btn.disabled = false;
-            btn.innerHTML = '<span>Login</span>';
-        });
+        if (window.supabaseAuth && typeof window.supabaseAuth.signIn === 'function') {
+            window.supabaseAuth.signIn(email, password)
+                .then(function(data) {
+                    var token = (data && data.session && data.session.access_token) ? data.session.access_token : '';
+                    return postToBackend({ token: token, email: email });
+                })
+                .catch(function(err) {
+                    var errorMsg = (err && err.message) ? err.message : '';
+                    if (errorMsg.indexOf('Invalid login credentials') !== -1 || (err && err.status === 400)) {
+                        if (banner) {
+                            banner.textContent = 'E-mail ou senha inválidos.';
+                            banner.style.display = 'block';
+                        }
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>Login</span>';
+                        return;
+                    }
+                    // Em caso de indisponibilidade da CDN do Supabase no cliente, tenta via backend
+                    return postToBackend({ email: email, password: password })
+                        .catch(function(beErr) {
+                            if (banner) {
+                                banner.textContent = beErr.message || 'E-mail ou senha inválidos.';
+                                banner.style.display = 'block';
+                            }
+                        })
+                        .finally(function() {
+                            btn.disabled = false;
+                            btn.innerHTML = '<span>Login</span>';
+                        });
+                })
+                .finally(function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Login</span>';
+                });
+        } else {
+            postToBackend({ email: email, password: password })
+                .catch(function(err) {
+                    if (banner) {
+                        banner.textContent = err.message || 'E-mail ou senha inválidos.';
+                        banner.style.display = 'block';
+                    }
+                })
+                .finally(function() {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Login</span>';
+                });
+        }
     }
 </script>
 

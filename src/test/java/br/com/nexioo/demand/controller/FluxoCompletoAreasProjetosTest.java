@@ -8,20 +8,25 @@ import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
 import br.com.nexioo.demand.model.Prioridade;
 import br.com.nexioo.demand.model.Projeto;
+import br.com.nexioo.demand.dto.SupabaseUser;
 import br.com.nexioo.demand.service.AreaTrabalhoService;
 import br.com.nexioo.demand.service.ColunaService;
 import br.com.nexioo.demand.service.DemandaService;
 import br.com.nexioo.demand.service.ProjetoService;
+import br.com.nexioo.demand.service.SupabaseAuthService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -46,6 +51,17 @@ class FluxoCompletoAreasProjetosTest {
     @Autowired
     private ColunaService colunaService;
 
+    @MockBean
+    private SupabaseAuthService supabaseAuthService;
+
+    @BeforeEach
+    void setUp() {
+        when(supabaseAuthService.autenticar("ana.silva@nexioo.com.br", "123456"))
+                .thenReturn(new SupabaseUser("id-ana", "ana.silva@nexioo.com.br", "Ana Silva", "fake-token-ana"));
+        when(supabaseAuthService.autenticar("joao@empresa.com", "123456"))
+                .thenReturn(new SupabaseUser("id-joao", "joao@empresa.com", "João", "fake-token-joao"));
+    }
+
     @Test
     @DisplayName("Validação dos 20 passos do fluxo de Áreas, Projetos e Demandas")
     void testFluxoCompletoAreasProjetosDemandas() throws Exception {
@@ -54,7 +70,8 @@ class FluxoCompletoAreasProjetosTest {
         // 1. Fazer login como usuário "Ana Silva" (ana.silva@nexioo.com.br)
         mockMvc.perform(post("/login")
                         .session(session)
-                        .param("email", "ana.silva@nexioo.com.br"))
+                        .param("email", "ana.silva@nexioo.com.br")
+                        .param("password", "123456"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/projetos"));
 
@@ -168,7 +185,8 @@ class FluxoCompletoAreasProjetosTest {
         MockHttpSession sessionJoao = new MockHttpSession();
         mockMvc.perform(post("/login")
                         .session(sessionJoao)
-                        .param("email", "joao@empresa.com"))
+                        .param("email", "joao@empresa.com")
+                        .param("password", "123456"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/projetos"));
 
