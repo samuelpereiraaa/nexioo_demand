@@ -86,7 +86,7 @@
     </div>
 
     <!-- ── Lista de cartões ── -->
-    <div class="column-cards-list" th:attr="aria-label='Cartões em ' + ${coluna.descricao}">
+    <div class="column-cards-list" th:attr="data-coluna-id=${coluna.id}, aria-label='Cartões em ' + ${coluna.descricao}">
         <th:block th:each="demanda : ${listaDemandas}">
             <div th:replace="~{fragments/cartao :: cartao}"></div>
         </th:block>

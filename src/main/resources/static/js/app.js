@@ -1747,6 +1747,12 @@
         };
 
         document.addEventListener('click', function (e) {
+            if (window.__dragAcabouDeOcorrer) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             var openBtn = e.target.closest('.btn-card-open-modal, .btn-quick-edit-open-modal, [data-action="open-card-modal"]');
             if (openBtn) {
                 e.preventDefault();
@@ -2263,8 +2269,368 @@
 
 
 
+    /**
+     * Sistema de Arrastar e Soltar (Drag and Drop) de Cartões Kanban — Estilo Trello
+     */
+    function iniciarDragAndDrop() {
+        var boardTrack = document.getElementById('board-columns-track');
+        if (!boardTrack) return;
+
+        var draggedCard = null;
+        var placeholder = null;
+        var origemColumn = null;
+        var origemList = null;
+        var origemNextSibling = null;
+        var origemColunaId = null;
+
+        function limparDestaquesColunas() {
+            document.querySelectorAll('.kanban-column.is-drag-over').forEach(function (col) {
+                col.classList.remove('is-drag-over');
+            });
+        }
+
+        function verificarAutoScroll(e) {
+            if (!draggedCard || !boardTrack) return;
+
+            var trackRect = boardTrack.getBoundingClientRect();
+            var thresholdX = 80;
+
+            if (e.clientX < trackRect.left + thresholdX) {
+                var speedLeft = Math.max(6, Math.min(22, (trackRect.left + thresholdX - e.clientX) / 3));
+                boardTrack.scrollLeft -= speedLeft;
+            } else if (e.clientX > trackRect.right - thresholdX) {
+                var speedRight = Math.max(6, Math.min(22, (e.clientX - (trackRect.right - thresholdX)) / 3));
+                boardTrack.scrollLeft += speedRight;
+            }
+
+            var colUnderCursor = e.target.closest('.kanban-column');
+            if (colUnderCursor) {
+                var cardsList = colUnderCursor.querySelector('.column-cards-list');
+                if (cardsList) {
+                    var listRect = cardsList.getBoundingClientRect();
+                    var thresholdY = 50;
+                    if (e.clientY < listRect.top + thresholdY && cardsList.scrollTop > 0) {
+                        cardsList.scrollTop -= 10;
+                    } else if (e.clientY > listRect.bottom - thresholdY) {
+                        cardsList.scrollTop += 10;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('dragstart', function (e) {
+            var card = e.target.closest('.kanban-card');
+            if (!card || e.target.closest('input, textarea, button, form, a') || card.classList.contains('is-quick-editing')) {
+                if (card && e.target.closest('input, textarea, button, form, a')) {
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            draggedCard = card;
+            origemColumn = card.closest('.kanban-column');
+            origemList = card.parentElement;
+            origemNextSibling = card.nextElementSibling;
+            origemColunaId = card.getAttribute('data-coluna') || (origemColumn ? origemColumn.getAttribute('data-coluna-id') : null);
+
+            var cardId = card.getAttribute('data-id');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', cardId || '');
+
+            if (!placeholder) {
+                placeholder = document.createElement('div');
+                placeholder.className = 'card-drop-placeholder';
+            }
+            var cardHeight = card.offsetHeight || 56;
+            placeholder.style.height = cardHeight + 'px';
+
+            window.__isDraggingCard = true;
+            window.__dragAcabouDeOcorrer = false;
+
+            setTimeout(function () {
+                if (draggedCard) {
+                    draggedCard.classList.add('is-dragging');
+                    document.body.classList.add('is-dragging-card');
+                }
+            }, 0);
+        });
+
+        document.addEventListener('dragover', function (e) {
+            if (!draggedCard) return;
+
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            verificarAutoScroll(e);
+
+            var targetCol = e.target.closest('.kanban-column');
+            if (!targetCol) return;
+
+            document.querySelectorAll('.kanban-column').forEach(function (col) {
+                if (col === targetCol) {
+                    if (!col.classList.contains('is-drag-over')) col.classList.add('is-drag-over');
+                } else {
+                    col.classList.remove('is-drag-over');
+                }
+            });
+
+            var cardsList = targetCol.querySelector('.column-cards-list');
+            if (!cardsList) return;
+
+            var cards = Array.from(cardsList.querySelectorAll('.kanban-card:not(.is-dragging)'));
+
+            var insertBeforeCard = null;
+            for (var i = 0; i < cards.length; i++) {
+                var c = cards[i];
+                var rect = c.getBoundingClientRect();
+                var midpoint = rect.top + rect.height / 2;
+                if (e.clientY < midpoint) {
+                    insertBeforeCard = c;
+                    break;
+                }
+            }
+
+            if (insertBeforeCard) {
+                if (placeholder.nextSibling !== insertBeforeCard) {
+                    cardsList.insertBefore(placeholder, insertBeforeCard);
+                }
+            } else {
+                var emptyState = cardsList.querySelector('.column-empty-state');
+                if (emptyState) {
+                    cardsList.insertBefore(placeholder, emptyState);
+                } else if (placeholder.parentElement !== cardsList || placeholder.nextElementSibling) {
+                    cardsList.appendChild(placeholder);
+                }
+            }
+        });
+
+        document.addEventListener('drop', function (e) {
+            if (!draggedCard || !placeholder || !placeholder.parentElement) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            var destinoList = placeholder.parentElement;
+            var destinoCol = destinoList.closest('.kanban-column');
+            if (!destinoCol) {
+                limparEstadoArrasto();
+                return;
+            }
+
+            var cardId = draggedCard.getAttribute('data-id');
+            var destinoColunaId = destinoCol.getAttribute('data-coluna-id');
+            var track = document.getElementById('board-columns-track');
+            var projetoId = track ? track.getAttribute('data-projeto-id') : null;
+
+            destinoList.insertBefore(draggedCard, placeholder);
+            if (placeholder.parentElement) placeholder.remove();
+
+            var cardsNaColuna = Array.from(destinoList.querySelectorAll('.kanban-card'));
+            var novaPosicao = cardsNaColuna.indexOf(draggedCard);
+            if (novaPosicao < 0) novaPosicao = 0;
+
+            draggedCard.setAttribute('data-coluna', destinoColunaId);
+            draggedCard.setAttribute('data-posicao', novaPosicao);
+
+            atualizarContadoresColuna(origemColumn);
+            if (destinoCol !== origemColumn) {
+                atualizarContadoresColuna(destinoCol);
+            }
+
+            var params = new URLSearchParams();
+            params.append('colunaOrigemId', origemColunaId || destinoColunaId);
+            params.append('colunaDestinoId', destinoColunaId);
+            params.append('novaPosicao', novaPosicao);
+            if (projetoId) params.append('projetoId', projetoId);
+
+            var savedOrigemList = origemList;
+            var savedOrigemNextSibling = origemNextSibling;
+            var savedOrigemCol = origemColumn;
+            var savedOrigemColId = origemColunaId;
+            var savedDestinoCol = destinoCol;
+            var cardMovido = draggedCard;
+
+            fetch('/demandas/' + cardId + '/mover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: params.toString()
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error('Não foi possível mover o cartão.');
+                return res.json();
+            })
+            .then(function (dados) {
+                if (dados && dados.status === 'ok') {
+                    cardMovido.setAttribute('data-posicao', dados.posicao != null ? dados.posicao : novaPosicao);
+                }
+            })
+            .catch(function (err) {
+                if (savedOrigemList && cardMovido) {
+                    if (savedOrigemNextSibling && savedOrigemNextSibling.parentNode === savedOrigemList) {
+                        savedOrigemList.insertBefore(cardMovido, savedOrigemNextSibling);
+                    } else {
+                        savedOrigemList.appendChild(cardMovido);
+                    }
+                    cardMovido.setAttribute('data-coluna', savedOrigemColId);
+                    atualizarContadoresColuna(savedOrigemCol);
+                    if (savedDestinoCol !== savedOrigemCol) {
+                        atualizarContadoresColuna(savedDestinoCol);
+                    }
+                }
+                exibirToast('Não foi possível mover o cartão. Tente novamente.', 'erro');
+            });
+
+            limparEstadoArrasto();
+        });
+
+        document.addEventListener('dragend', function () {
+            limparEstadoArrasto();
+        });
+
+        function limparEstadoArrasto() {
+            if (draggedCard) {
+                draggedCard.classList.remove('is-dragging');
+            }
+            document.body.classList.remove('is-dragging-card');
+            limparDestaquesColunas();
+
+            if (placeholder && placeholder.parentElement) {
+                placeholder.remove();
+            }
+
+            window.__dragAcabouDeOcorrer = true;
+            window.__isDraggingCard = false;
+            setTimeout(function () {
+                window.__dragAcabouDeOcorrer = false;
+            }, 250);
+
+            draggedCard = null;
+            origemColumn = null;
+            origemList = null;
+            origemNextSibling = null;
+            origemColunaId = null;
+        }
+
+        // Acessibilidade por teclado (Alt + Setas)
+        document.addEventListener('keydown', function (e) {
+            if (!e.altKey) return;
+            var key = e.key;
+            if (key !== 'ArrowUp' && key !== 'ArrowDown' && key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+
+            var card = document.activeElement ? document.activeElement.closest('.kanban-card') : null;
+            if (!card || card.classList.contains('is-quick-editing')) return;
+
+            var currentList = card.parentElement;
+            var currentCol = card.closest('.kanban-column');
+            if (!currentList || !currentCol) return;
+
+            var track = document.getElementById('board-columns-track');
+            if (!track) return;
+
+            var cols = Array.from(track.querySelectorAll('.kanban-column:not(.kanban-column--collapsed)'));
+            var currentColIndex = cols.indexOf(currentCol);
+
+            var origemColId = currentCol.getAttribute('data-coluna-id');
+            var targetCol = currentCol;
+            var targetList = currentList;
+
+            if (key === 'ArrowUp') {
+                e.preventDefault();
+                var prevCard = card.previousElementSibling;
+                while (prevCard && !prevCard.classList.contains('kanban-card')) {
+                    prevCard = prevCard.previousElementSibling;
+                }
+                if (prevCard) {
+                    currentList.insertBefore(card, prevCard);
+                    salvarPosicaoTeclado(card, currentCol, currentCol, origemColId, currentCol.getAttribute('data-coluna-id'));
+                }
+            } else if (key === 'ArrowDown') {
+                e.preventDefault();
+                var nextCard = card.nextElementSibling;
+                while (nextCard && !nextCard.classList.contains('kanban-card')) {
+                    nextCard = nextCard.nextElementSibling;
+                }
+                if (nextCard) {
+                    currentList.insertBefore(nextCard, card);
+                    salvarPosicaoTeclado(card, currentCol, currentCol, origemColId, currentCol.getAttribute('data-coluna-id'));
+                }
+            } else if (key === 'ArrowLeft') {
+                e.preventDefault();
+                if (currentColIndex > 0) {
+                    targetCol = cols[currentColIndex - 1];
+                    targetList = targetCol.querySelector('.column-cards-list');
+                    if (targetList) {
+                        targetList.appendChild(card);
+                        salvarPosicaoTeclado(card, currentCol, targetCol, origemColId, targetCol.getAttribute('data-coluna-id'));
+                    }
+                }
+            } else if (key === 'ArrowRight') {
+                e.preventDefault();
+                if (currentColIndex >= 0 && currentColIndex < cols.length - 1) {
+                    targetCol = cols[currentColIndex + 1];
+                    targetList = targetCol.querySelector('.column-cards-list');
+                    if (targetList) {
+                        targetList.appendChild(card);
+                        salvarPosicaoTeclado(card, currentCol, targetCol, origemColId, targetCol.getAttribute('data-coluna-id'));
+                    }
+                }
+            }
+        });
+
+        function salvarPosicaoTeclado(card, colOrigem, colDestino, origemId, destinoId) {
+            var cardsNaColuna = Array.from(colDestino.querySelectorAll('.kanban-card'));
+            var novaPosicao = cardsNaColuna.indexOf(card);
+            if (novaPosicao < 0) novaPosicao = 0;
+
+            card.setAttribute('data-coluna', destinoId);
+            card.setAttribute('data-posicao', novaPosicao);
+
+            atualizarContadoresColuna(colOrigem);
+            if (colDestino !== colOrigem) {
+                atualizarContadoresColuna(colDestino);
+            }
+
+            card.focus();
+
+            var track = document.getElementById('board-columns-track');
+            var projetoId = track ? track.getAttribute('data-projeto-id') : null;
+            var cardId = card.getAttribute('data-id');
+
+            var params = new URLSearchParams();
+            params.append('colunaOrigemId', origemId);
+            params.append('colunaDestinoId', destinoId);
+            params.append('novaPosicao', novaPosicao);
+            if (projetoId) params.append('projetoId', projetoId);
+
+            fetch('/demandas/' + cardId + '/mover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: params.toString()
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error();
+                return res.json();
+            })
+            .then(function (dados) {
+                if (dados && dados.status === 'ok') {
+                    card.setAttribute('data-posicao', dados.posicao != null ? dados.posicao : novaPosicao);
+                }
+            })
+            .catch(function () {
+                exibirToast('Não foi possível mover o cartão. Tente novamente.', 'erro');
+            });
+        }
+    }
+
     function inicializar() {
         iniciarInteracaoCartoes();
+        iniciarDragAndDrop();
         iniciarRecolhimentoColunas();
         iniciarModal();
         iniciarModalDetalhes();

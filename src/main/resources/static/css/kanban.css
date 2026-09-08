@@ -399,7 +399,9 @@
     background: var(--color-surface-elevated);
     border: 1.5px solid var(--color-border-subtle);
     border-radius: 10px;
-    cursor: pointer;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
     overflow: hidden;
     transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
     outline: none;
@@ -445,6 +447,50 @@
     border-color: #70B538;
     box-shadow: 0 0 0 1px #70B538;
     background: var(--color-surface-hover);
+}
+
+/* ── Estilos de Arrastar e Soltar (Drag and Drop) ── */
+.kanban-card.is-dragging {
+    opacity: 0.45 !important;
+    cursor: grabbing !important;
+    box-shadow: var(--shadow-lg), 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: rotate(1.5deg);
+    border-color: #70B538 !important;
+}
+
+body.is-dragging-card,
+body.is-dragging-card .kanban-card,
+body.is-dragging-card .board-columns-track,
+body.is-dragging-card .column-cards-list {
+    cursor: grabbing !important;
+}
+
+/* Destaque discreto e elegante da coluna de destino (borda verde oficial Nexioo Demand) */
+.kanban-column.is-drag-over {
+    border: 2px solid #70B538 !important;
+    box-shadow: 0 0 0 1px #70B538, var(--shadow-md) !important;
+}
+
+/* Indicador visual do local onde o cartão será solto (placeholder/gap com tema verde suave) */
+.card-drop-placeholder {
+    position: relative;
+    border-radius: 10px;
+    border: 2px dashed #70B538;
+    background: rgba(112, 181, 56, 0.08);
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    min-height: 52px;
+    pointer-events: none;
+    transition: height 120ms ease;
+    flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card-drop-placeholder,
+    .kanban-card.is-dragging {
+        transition: none !important;
+        transform: none !important;
+    }
 }
 
 

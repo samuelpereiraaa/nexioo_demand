@@ -23,6 +23,7 @@ public class Demanda {
     private boolean concluido = false;
     private String imagemUrl;
     private Long projetoId = 100L;
+    private Integer posicao = 0;
 
     private List<Etiqueta> etiquetas = new ArrayList<>();
 
@@ -218,6 +219,14 @@ public class Demanda {
 
     public void setProjetoId(Long projetoId) {
         this.projetoId = projetoId;
+    }
+
+    public Integer getPosicao() {
+        return posicao != null ? posicao : 0;
+    }
+
+    public void setPosicao(Integer posicao) {
+        this.posicao = posicao != null ? posicao : 0;
     }
 
     public List<Etiqueta> getEtiquetas() {

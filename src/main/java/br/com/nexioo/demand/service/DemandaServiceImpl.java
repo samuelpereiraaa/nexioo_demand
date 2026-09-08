@@ -36,6 +36,13 @@ public class DemandaServiceImpl implements DemandaService {
         aplicarForm(demanda, form);
         demanda.setCriadoEm(LocalDateTime.now());
         demanda.setAtualizadoEm(LocalDateTime.now());
+
+        // Atribui posição ao final da lista da coluna correspondente
+        List<Demanda> demandasColuna = listarPorProjeto(demanda.getProjetoId()).stream()
+                .filter(d -> d.getColuna() != null && d.getColuna().equals(demanda.getColuna()))
+                .collect(Collectors.toList());
+        demanda.setPosicao(demandasColuna.size());
+
         demanda.registrarAtividade(
                 demanda.getResponsavel() != null ? demanda.getResponsavel() : "Samuel Oliveira",
                 "adicionou este cartão a " + demanda.getColuna().getDescricao()
@@ -79,6 +86,9 @@ public class DemandaServiceImpl implements DemandaService {
                 resultado.computeIfAbsent(demanda.getColuna(), k -> new ArrayList<>()).add(demanda);
             }
         }
+        for (List<Demanda> lista : resultado.values()) {
+            lista.sort(Comparator.comparing(d -> d.getPosicao() != null ? d.getPosicao() : 0));
+        }
         return resultado;
     }
 
@@ -98,6 +108,9 @@ public class DemandaServiceImpl implements DemandaService {
                     resultado.computeIfAbsent(demanda.getColuna(), k -> new ArrayList<>()).add(demanda);
                 }
             }
+        }
+        for (List<Demanda> lista : resultado.values()) {
+            lista.sort(Comparator.comparing(d -> d.getPosicao() != null ? d.getPosicao() : 0));
         }
         return resultado;
     }
@@ -157,6 +170,95 @@ public class DemandaServiceImpl implements DemandaService {
             demandaRepository.salvar(demanda);
         }
         return demanda;
+    }
+
+    @Override
+    public Demanda mover(Long id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, Long projetoId, String usuario) {
+        Demanda demanda = buscarPorId(id);
+
+        Coluna colOrig = (colunaOrigemId != null && !colunaOrigemId.isBlank())
+                ? colunaService.buscarPorId(colunaOrigemId)
+                : demanda.getColuna();
+
+        Coluna colDest = (colunaDestinoId != null && !colunaDestinoId.isBlank())
+                ? colunaService.buscarPorId(colunaDestinoId)
+                : demanda.getColuna();
+
+        if (colDest == null) {
+            colDest = colunaService.buscarPadrao();
+        }
+
+        final Coluna colunaOrigem = colOrig;
+        final Coluna colunaDestino = colDest;
+
+        if (projetoId != null && demanda.getProjetoId() != null && !projetoId.equals(demanda.getProjetoId())) {
+            throw new IllegalArgumentException("Demanda não pertence ao projeto informado.");
+        }
+
+        Long effectiveProjetoId = (projetoId != null) ? projetoId : demanda.getProjetoId();
+        List<Demanda> todasDoProjeto = listarPorProjeto(effectiveProjetoId);
+
+        boolean mesmaColuna = colunaOrigem != null && colunaOrigem.equals(colunaDestino);
+
+        if (mesmaColuna) {
+            List<Demanda> cardsDaColuna = todasDoProjeto.stream()
+                    .filter(d -> colunaDestino.equals(d.getColuna()) && !d.getId().equals(id))
+                    .sorted(Comparator.comparing(Demanda::getPosicao))
+                    .collect(Collectors.toList());
+
+            int pos = Math.max(0, Math.min(novaPosicao != null ? novaPosicao : 0, cardsDaColuna.size()));
+            cardsDaColuna.add(pos, demanda);
+
+            for (int i = 0; i < cardsDaColuna.size(); i++) {
+                Demanda d = cardsDaColuna.get(i);
+                d.setPosicao(i);
+                if (!d.getId().equals(id)) {
+                    demandaRepository.salvar(d);
+                }
+            }
+
+            demanda.setPosicao(pos);
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            String autor = (usuario != null && !usuario.isBlank()) ? usuario : "Samuel Oliveira";
+            demanda.registrarAtividade(autor, "reordenou este cartão para a posição " + (pos + 1));
+            return demandaRepository.salvar(demanda);
+        } else {
+            // Remove da coluna de origem e renumera
+            List<Demanda> cardsOrigem = todasDoProjeto.stream()
+                    .filter(d -> (colunaOrigem != null ? colunaOrigem.equals(d.getColuna()) : false) && !d.getId().equals(id))
+                    .sorted(Comparator.comparing(Demanda::getPosicao))
+                    .collect(Collectors.toList());
+
+            for (int i = 0; i < cardsOrigem.size(); i++) {
+                Demanda d = cardsOrigem.get(i);
+                d.setPosicao(i);
+                demandaRepository.salvar(d);
+            }
+
+            // Insere na coluna de destino e renumera
+            List<Demanda> cardsDestino = todasDoProjeto.stream()
+                    .filter(d -> colunaDestino.equals(d.getColuna()) && !d.getId().equals(id))
+                    .sorted(Comparator.comparing(Demanda::getPosicao))
+                    .collect(Collectors.toList());
+
+            int pos = Math.max(0, Math.min(novaPosicao != null ? novaPosicao : 0, cardsDestino.size()));
+            cardsDestino.add(pos, demanda);
+
+            for (int i = 0; i < cardsDestino.size(); i++) {
+                Demanda d = cardsDestino.get(i);
+                d.setPosicao(i);
+                if (!d.getId().equals(id)) {
+                    demandaRepository.salvar(d);
+                }
+            }
+
+            demanda.setColuna(colunaDestino);
+            demanda.setPosicao(pos);
+            demanda.setAtualizadoEm(LocalDateTime.now());
+            String autor = (usuario != null && !usuario.isBlank()) ? usuario : "Samuel Oliveira";
+            demanda.registrarAtividade(autor, "moveu este cartão para " + colunaDestino.getDescricao() + " (posição " + (pos + 1) + ")");
+            return demandaRepository.salvar(demanda);
+        }
     }
 
     @Override

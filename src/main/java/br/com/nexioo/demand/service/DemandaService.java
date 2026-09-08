@@ -39,6 +39,8 @@ public interface DemandaService {
 
     Demanda alterarColuna(Long id, Coluna novaColuna);
 
+    Demanda mover(Long id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, Long projetoId, String usuario);
+
     Demanda alternarConclusao(Long id);
 
     Demanda adicionarComentario(Long id, String texto, String autor);

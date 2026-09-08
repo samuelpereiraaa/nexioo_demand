@@ -17,12 +17,17 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.Arrays;
+import br.com.nexioo.demand.config.AuthInterceptor;
+import br.com.nexioo.demand.exception.DemandaNaoEncontradaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gerencia o ciclo de vida e interações detalhadas das demandas.
@@ -332,6 +337,49 @@ public class DemandaController {
         Demanda demanda = demandaService.adicionarComentario(id, texto, "Samuel Oliveira");
         preencherModelModal(model, demanda);
         return "fragments/modal-detalhe :: modalDetalheConteudo";
+    }
+
+    // ── Mover / Reordenar Demanda (Drag and Drop) ───────────────────────────
+
+    @PostMapping("/{id}/mover")
+    @ResponseBody
+    public ResponseEntity<?> moverDemanda(
+            @PathVariable Long id,
+            @RequestParam String colunaOrigemId,
+            @RequestParam String colunaDestinoId,
+            @RequestParam Integer novaPosicao,
+            @RequestParam(required = false) Long projetoId,
+            HttpSession session) {
+        try {
+            String usuario = (session != null && session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO) != null)
+                    ? (String) session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO)
+                    : "Samuel Oliveira";
+
+            Demanda demanda = demandaService.mover(id, colunaOrigemId, colunaDestinoId, novaPosicao, projetoId, usuario);
+
+            Map<String, Object> resposta = new HashMap<>();
+            resposta.put("status", "ok");
+            resposta.put("id", demanda.getId());
+            resposta.put("colunaDestino", demanda.getColuna().getId());
+            resposta.put("posicao", demanda.getPosicao());
+            return ResponseEntity.ok(resposta);
+        } catch (DemandaNaoEncontradaException e) {
+            Map<String, Object> erro = new HashMap<>();
+            erro.put("status", "erro");
+            erro.put("mensagem", "Demanda não encontrada.");
+            return ResponseEntity.status(404).body(erro);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> erro = new HashMap<>();
+            erro.put("status", "erro");
+            erro.put("mensagem", e.getMessage());
+            return ResponseEntity.badRequest().body(erro);
+        } catch (Exception e) {
+            log.error("Erro ao mover demanda id={}", id, e);
+            Map<String, Object> erro = new HashMap<>();
+            erro.put("status", "erro");
+            erro.put("mensagem", "Não foi possível mover o cartão. Tente novamente.");
+            return ResponseEntity.internalServerError().body(erro);
+        }
     }
 
     // ── Alterar status / Conclusão ───────────────────────────────────────────

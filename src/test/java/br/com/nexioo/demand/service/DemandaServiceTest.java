@@ -216,6 +216,121 @@ class DemandaServiceTest {
         assertThat(comAnexo.hasCapa()).isFalse();
     }
 
+    @Test
+    @DisplayName("deve reordenar demanda dentro da mesma coluna")
+    void deveReordenarDemandaDentroDaMesmaColuna() {
+        Demanda d1 = demandaComTitulo("Card 1", Coluna.BACKLOG);
+        d1.setId(1L);
+        d1.setPosicao(0);
+        d1.setProjetoId(100L);
+
+        Demanda d2 = demandaComTitulo("Card 2", Coluna.BACKLOG);
+        d2.setId(2L);
+        d2.setPosicao(1);
+        d2.setProjetoId(100L);
+
+        Demanda d3 = demandaComTitulo("Card 3", Coluna.BACKLOG);
+        d3.setId(3L);
+        d3.setPosicao(2);
+        d3.setProjetoId(100L);
+
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(d1));
+        when(demandaRepository.listarTodas()).thenReturn(Arrays.asList(d1, d2, d3));
+        when(colunaService.buscarPorId("BACKLOG")).thenReturn(Coluna.BACKLOG);
+        when(demandaRepository.salvar(any(Demanda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Demanda resultado = demandaService.mover(1L, "BACKLOG", "BACKLOG", 2, 100L, "Samuel Oliveira");
+
+        assertThat(resultado.getPosicao()).isEqualTo(2);
+        assertThat(resultado.getColuna()).isEqualTo(Coluna.BACKLOG);
+    }
+
+    @Test
+    @DisplayName("deve mover demanda para outra coluna na posição indicada")
+    void deveMoverDemandaParaOutraColuna() {
+        Demanda d1 = demandaComTitulo("Card 1", Coluna.BACKLOG);
+        d1.setId(1L);
+        d1.setPosicao(0);
+        d1.setProjetoId(100L);
+
+        Demanda d2 = demandaComTitulo("Card 2", Coluna.EM_ANDAMENTO);
+        d2.setId(2L);
+        d2.setPosicao(0);
+        d2.setProjetoId(100L);
+
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(d1));
+        when(demandaRepository.listarTodas()).thenReturn(Arrays.asList(d1, d2));
+        when(colunaService.buscarPorId("BACKLOG")).thenReturn(Coluna.BACKLOG);
+        when(colunaService.buscarPorId("EM_ANDAMENTO")).thenReturn(Coluna.EM_ANDAMENTO);
+        when(demandaRepository.salvar(any(Demanda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Demanda resultado = demandaService.mover(1L, "BACKLOG", "EM_ANDAMENTO", 0, 100L, "Samuel Oliveira");
+
+        assertThat(resultado.getColuna()).isEqualTo(Coluna.EM_ANDAMENTO);
+        assertThat(resultado.getPosicao()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("deve mover demanda para coluna vazia e atribuir posição 0")
+    void deveMoverDemandaParaColunaVazia() {
+        Demanda d1 = demandaComTitulo("Card 1", Coluna.BACKLOG);
+        d1.setId(1L);
+        d1.setPosicao(0);
+        d1.setProjetoId(100L);
+
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(d1));
+        when(demandaRepository.listarTodas()).thenReturn(Arrays.asList(d1));
+        when(colunaService.buscarPorId("BACKLOG")).thenReturn(Coluna.BACKLOG);
+        when(colunaService.buscarPorId("CONCLUIDO")).thenReturn(Coluna.CONCLUIDO);
+        when(demandaRepository.salvar(any(Demanda.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Demanda resultado = demandaService.mover(1L, "BACKLOG", "CONCLUIDO", 5, 100L, "Samuel Oliveira");
+
+        assertThat(resultado.getColuna()).isEqualTo(Coluna.CONCLUIDO);
+        assertThat(resultado.getPosicao()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("deve retornar demandas ordenadas por posição ascendente em listarPorColuna")
+    void deveListarDemandasOrdenadasPorPosicao() {
+        Demanda d1 = demandaComTitulo("Card B", Coluna.BACKLOG);
+        d1.setPosicao(2);
+        d1.setProjetoId(100L);
+
+        Demanda d2 = demandaComTitulo("Card A", Coluna.BACKLOG);
+        d2.setPosicao(0);
+        d2.setProjetoId(100L);
+
+        Demanda d3 = demandaComTitulo("Card C", Coluna.BACKLOG);
+        d3.setPosicao(1);
+        d3.setProjetoId(100L);
+
+        when(demandaRepository.listarTodas()).thenReturn(Arrays.asList(d1, d2, d3));
+        when(colunaService.listarTodas()).thenReturn(Arrays.asList(Coluna.BACKLOG));
+
+        Map<Coluna, List<Demanda>> mapa = demandaService.listarPorColuna(100L);
+        List<Demanda> lista = mapa.get(Coluna.BACKLOG);
+
+        assertThat(lista).hasSize(3);
+        assertThat(lista.get(0).getPosicao()).isEqualTo(0);
+        assertThat(lista.get(1).getPosicao()).isEqualTo(1);
+        assertThat(lista.get(2).getPosicao()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("deve rejeitar mover demanda de outro projeto")
+    void deveRejeitarMoverDemandaDeOutroProjeto() {
+        Demanda d1 = demandaComTitulo("Card 1", Coluna.BACKLOG);
+        d1.setId(1L);
+        d1.setProjetoId(200L);
+
+        when(demandaRepository.buscarPorId(1L)).thenReturn(Optional.of(d1));
+
+        assertThatThrownBy(() -> demandaService.mover(1L, "BACKLOG", "EM_ANDAMENTO", 0, 100L, "Samuel Oliveira"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("não pertence ao projeto informado");
+    }
+
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 

@@ -243,6 +243,54 @@ class DemandaControllerTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    @DisplayName("POST /demandas/{id}/mover deve mover demanda e retornar 200 OK com dados atualizados")
+    void deveMoverDemandaComSucesso() throws Exception {
+        Demanda demanda = demandaFake(1L, "Card teste");
+        demanda.setColuna(Coluna.EM_ANDAMENTO);
+        demanda.setPosicao(2);
+
+        when(demandaService.mover(eq(1L), eq("BACKLOG"), eq("EM_ANDAMENTO"), eq(2), eq(100L), anyString()))
+                .thenReturn(demanda);
+
+        mockMvc.perform(post("/demandas/1/mover")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
+                        .param("colunaOrigemId", "BACKLOG")
+                        .param("colunaDestinoId", "EM_ANDAMENTO")
+                        .param("novaPosicao", "2")
+                        .param("projetoId", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ok"))
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.colunaDestino").value("EM_ANDAMENTO"))
+                .andExpect(jsonPath("$.posicao").value(2));
+    }
+
+    @Test
+    @DisplayName("POST /demandas/{id}/mover deve retornar 404 quando demanda não for encontrada")
+    void deveRetornar404AoMoverDemandaInexistente() throws Exception {
+        when(demandaService.mover(eq(999L), anyString(), anyString(), any(), any(), anyString()))
+                .thenThrow(new br.com.nexioo.demand.exception.DemandaNaoEncontradaException(999L));
+
+        mockMvc.perform(post("/demandas/999/mover")
+                        .sessionAttr(AuthInterceptor.CHAVE_USUARIO_LOGADO, "usuario@test.com")
+                        .param("colunaOrigemId", "BACKLOG")
+                        .param("colunaDestinoId", "EM_ANDAMENTO")
+                        .param("novaPosicao", "0"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value("erro"));
+    }
+
+    @Test
+    @DisplayName("POST /demandas/{id}/mover deve redirecionar quando não autenticado")
+    void deveRejeitarMoverDemandaSemAutenticacao() throws Exception {
+        mockMvc.perform(post("/demandas/1/mover")
+                        .param("colunaOrigemId", "BACKLOG")
+                        .param("colunaDestinoId", "EM_ANDAMENTO")
+                        .param("novaPosicao", "0"))
+                .andExpect(status().is3xxRedirection());
+    }
+
 
 
     private Demanda demandaFake(Long id, String titulo) {

@@ -12,7 +12,9 @@
          th:id="'card-' + ${demanda.id}"
          th:attr="data-id=${demanda.id},
                   data-coluna=${demanda.coluna != null ? demanda.coluna.id : ''},
+                  data-posicao=${demanda.posicao != null ? demanda.posicao : 0},
                   aria-label='Demanda: ' + ${demanda.titulo}"
+         draggable="true"
          tabindex="0"
          role="button">
 
