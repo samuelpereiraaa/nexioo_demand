@@ -44,14 +44,19 @@ public class CsrfTokenService {
 
     public String obterOuGerarToken(HttpServletRequest request, HttpServletResponse response) {
         HttpSession session = request.getSession(true);
-        String token = (String) session.getAttribute(CSRF_ATTR_NAME);
+        String token = obterTokenDeCookie(request);
+
+        if (token == null || token.isBlank()) {
+            token = (String) session.getAttribute(CSRF_ATTR_NAME);
+        }
+
         if (token == null || token.isBlank()) {
             byte[] randomBytes = new byte[32];
             secureRandom.nextBytes(randomBytes);
             token = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-            session.setAttribute(CSRF_ATTR_NAME, token);
         }
 
+        session.setAttribute(CSRF_ATTR_NAME, token);
         request.setAttribute(CSRF_ATTR_NAME, token);
 
         if (response != null) {
@@ -64,6 +69,18 @@ public class CsrfTokenService {
         }
 
         return token;
+    }
+
+    private String obterTokenDeCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (CSRF_COOKIE_NAME.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    return cookie.getValue().trim();
+                }
+            }
+        }
+        return null;
     }
 
     public boolean validarOrigem(HttpServletRequest request) {
@@ -112,9 +129,16 @@ public class CsrfTokenService {
             return false;
         }
 
-        HttpSession session = request.getSession(false);
-        String sessionToken = (session != null) ? (String) session.getAttribute(CSRF_ATTR_NAME) : null;
-        if (sessionToken == null || sessionToken.isBlank()) {
+        // 2. Double-Submit Cookie: Obtém token do cookie ou fallback de sessão
+        String expectedToken = obterTokenDeCookie(request);
+        if (expectedToken == null || expectedToken.isBlank()) {
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                expectedToken = (String) session.getAttribute(CSRF_ATTR_NAME);
+            }
+        }
+
+        if (expectedToken == null || expectedToken.isBlank()) {
             return false;
         }
 
@@ -130,9 +154,9 @@ public class CsrfTokenService {
             return false;
         }
 
-        // Comparação de tokens em tempo constante
+        // Comparação de tokens em tempo constante contra timing attacks
         return MessageDigest.isEqual(
-                sessionToken.trim().getBytes(StandardCharsets.UTF_8),
+                expectedToken.trim().getBytes(StandardCharsets.UTF_8),
                 requestToken.trim().getBytes(StandardCharsets.UTF_8)
         );
     }

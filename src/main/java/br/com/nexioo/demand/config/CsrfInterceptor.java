@@ -45,13 +45,11 @@ public class CsrfInterceptor implements HandlerInterceptor {
 
         // 4. Rotas públicas de onboarding (/login e /signup)
         if (uri.equals("/login") || uri.equals("/signup")) {
-            // Se houver sessão prévia ou token CSRF fornecido na requisição, valida estritamente
-            javax.servlet.http.HttpSession session = request.getSession(false);
             boolean hasCsrfHeader = request.getHeader(CsrfTokenService.CSRF_HEADER_NAME) != null 
                     || request.getHeader("X-XSRF-TOKEN") != null 
                     || request.getParameter("_csrf") != null;
 
-            if (session != null && session.getAttribute(CsrfTokenService.CSRF_ATTR_NAME) != null && hasCsrfHeader) {
+            if (hasCsrfHeader) {
                 if (!csrfTokenService.validarToken(request)) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json;charset=UTF-8");
