@@ -78,6 +78,21 @@ class CsrfProtectionTest {
     }
 
     @Test
+    @DisplayName("POST deve aceitar double-submit cookie sem depender da sessão da instância")
+    void devePermitirCsrfStatelessComCookie() throws Exception {
+        MvcResult getResult = mockMvc.perform(get("/login")).andReturn();
+        Cookie csrfCookie = getResult.getResponse().getCookie(CsrfTokenService.CSRF_COOKIE_NAME);
+        assertNotNull(csrfCookie);
+
+        mockMvc.perform(post("/logout")
+                        .cookie(csrfCookie)
+                        .header("Origin", "http://localhost")
+                        .header("Host", "localhost")
+                        .header(CsrfTokenService.CSRF_HEADER_NAME, csrfCookie.getValue()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("POST com token CSRF divergente deve retornar 403 Forbidden (comparação estrita)")
     void deveRejeitarTokenCsrfDivergente() throws Exception {
         MvcResult getResult = mockMvc.perform(get("/login")).andReturn();
