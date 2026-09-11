@@ -66,6 +66,7 @@
 
         <!-- Signup Form -->
         <form class="auth-form" action="/signup" method="post" onsubmit="window.handleSignupSubmit(event)">
+            <input type="hidden" name="_csrf" th:value="${_csrf}" />
 
             <!-- Email Input -->
             <div class="input-group-icon">
@@ -169,12 +170,17 @@
             if (payload.token) params.append('token', payload.token);
             if (payload.email) params.append('email', payload.email);
             if (payload.password) params.append('password', payload.password);
+            var csrfInput = document.querySelector('input[name="_csrf"]');
+            if (csrfInput && csrfInput.value) {
+                params.append('_csrf', csrfInput.value);
+            }
 
             return fetch('/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': (csrfInput && csrfInput.value) ? csrfInput.value : ''
                 },
                 body: params.toString()
             })

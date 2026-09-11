@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Responsável pela tela principal: o quadro Kanban.
@@ -42,54 +43,71 @@ public class QuadroController {
 
     @GetMapping("/quadro")
     public String quadro(
-            @RequestParam(required = false) Long projetoId,
+            @RequestParam(required = false) String projetoId,
             @RequestParam(required = false) String termo,
             @RequestParam(required = false) Prioridade prioridade,
             @RequestParam(required = false) String responsavel,
             Model model) {
 
+        UUID idBuscado = br.com.nexioo.demand.util.IdUtils.parseUuid(projetoId);
         Projeto projetoAtual = null;
-        if (projetoId != null) {
+        if (idBuscado != null) {
             try {
-                projetoAtual = projetoService.buscarPorId(projetoId);
-            } catch (Exception ignored) {}
-        }
-        if (projetoAtual == null) {
-            List<Projeto> todos = projetoService.listarTodos();
-            if (!todos.isEmpty()) {
-                projetoAtual = todos.get(0);
+                projetoAtual = projetoService.buscarPorId(idBuscado);
+            } catch (Exception e) {
+                // Acesso negado ou projeto de outro usuário -> Redireciona para /projetos com segurança
+                return "redirect:/projetos";
+            }
+            if (projetoAtual == null) {
+                return "redirect:/projetos";
             }
         }
 
-        Long pid = projetoAtual != null ? projetoAtual.getId() : null;
+        if (projetoAtual == null) {
+            List<Projeto> recentes = projetoService.listarRecentes();
+            if (!recentes.isEmpty()) {
+                projetoAtual = recentes.get(0);
+            } else {
+                List<Projeto> meusProjetos = projetoService.listarTodos();
+                if (!meusProjetos.isEmpty()) {
+                    projetoAtual = meusProjetos.get(0);
+                }
+            }
+        }
+
+        if (projetoAtual != null) {
+            // Registra a visualização recente para o usuário autenticado
+            projetoService.registrarVisualizacao(projetoAtual.getId());
+        }
+
+        UUID pid = projetoAtual != null ? projetoAtual.getId() : null;
 
         boolean temFiltro = temFiltroAtivo(termo, prioridade, responsavel);
         Map<Coluna, List<Demanda>> demandas;
         if (temFiltro) {
-            demandas = (pid != null)
-                    ? demandaService.filtrar(pid, termo, prioridade, responsavel)
-                    : demandaService.filtrar(termo, prioridade, responsavel);
+            demandas = demandaService.filtrar(pid, termo, prioridade, responsavel);
         } else {
-            demandas = (pid != null)
-                    ? demandaService.listarPorColuna(pid)
-                    : demandaService.listarPorColuna();
+            demandas = demandaService.listarPorColuna(pid);
         }
 
-        List<Coluna> colunas = colunaService.listarTodas();
+        List<Coluna> colunas = (pid != null)
+                ? colunaService.listarPorProjeto(pid)
+                : colunaService.listarTodas();
 
         // Formulário padrão para criação rápida de demandas
         DemandaForm novoForm = new DemandaForm();
         novoForm.setColuna(colunaService.buscarPadrao());
         novoForm.setPrioridade(Prioridade.MEDIA);
-        if (pid != null) {
-            novoForm.setProjetoId(pid);
-        }
+        novoForm.setProjetoId(pid);
+
+        ColunaForm colunaForm = new ColunaForm();
+        colunaForm.setProjetoId(pid);
 
         model.addAttribute("demandas", demandas);
         model.addAttribute("colunas", colunas);
         model.addAttribute("prioridades", Prioridade.values());
         model.addAttribute("demandaForm", novoForm);
-        model.addAttribute("colunaForm", new ColunaForm());
+        model.addAttribute("colunaForm", colunaForm);
         model.addAttribute("filtroTermo", termo);
         model.addAttribute("filtroPrioridade", prioridade);
         model.addAttribute("filtroResponsavel", responsavel);

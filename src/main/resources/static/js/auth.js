@@ -160,10 +160,43 @@
                     try { signOut(); } catch (err) {}
                 }
                 try {
-                    localStorage.clear();
-                    sessionStorage.clear();
+                    // Limpa chaves do Supabase e da aplicação Nexioo sem apagar dados alheios
+                    Object.keys(localStorage).forEach(function (k) {
+                        if (k.startsWith('sb-') || k.startsWith('nexioo:')) {
+                            localStorage.removeItem(k);
+                        }
+                    });
+                    Object.keys(sessionStorage).forEach(function (k) {
+                        if (k.startsWith('sb-') || k.startsWith('nexioo:')) {
+                            sessionStorage.removeItem(k);
+                        }
+                    });
                 } catch (err) {}
-                window.location.href = '/logout';
+
+                // Obtém token CSRF do cookie ou meta tag
+                var csrfToken = '';
+                var match = document.cookie.match(new RegExp('(^|;\\s*)XSRF-TOKEN=([^;]*)'));
+                if (match) {
+                    csrfToken = decodeURIComponent(match[2]);
+                }
+                if (!csrfToken) {
+                    var metaEl = document.querySelector('meta[name="_csrf"]');
+                    if (metaEl) csrfToken = metaEl.getAttribute('content');
+                }
+
+                // Executa logout via POST seguro
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/logout';
+                if (csrfToken) {
+                    var inputCsrf = document.createElement('input');
+                    inputCsrf.type = 'hidden';
+                    inputCsrf.name = '_csrf';
+                    inputCsrf.value = csrfToken;
+                    form.appendChild(inputCsrf);
+                }
+                document.body.appendChild(form);
+                form.submit();
             }
         });
     }

@@ -1,50 +1,77 @@
 package br.com.nexioo.demand.model;
 
+import br.com.nexioo.demand.util.IdUtils;
+
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Entidade que representa um Projeto / Quadro no sistema.
  */
 public class Projeto {
 
-    private Long id;
+    private UUID id;
+    private UUID usuarioId;
+    private UUID areaTrabalhoId;
     private String nome;
     private String descricao;
     private String gradiente;
     private LocalDate dataCriacao;
     private int membrosCount;
-    private boolean recentementeVisualizado;
     private int quantidadeDemandas;
-
-    private Long areaTrabalhoId;
     private String usuarioProprietario;
 
     public Projeto() {
         this.dataCriacao = LocalDate.now();
         this.membrosCount = 1;
         this.gradiente = "linear-gradient(135deg, #a855f7, #ec4899)";
-        this.areaTrabalhoId = 1L;
     }
 
-
-    public Projeto(Long id, String nome, String descricao, String gradiente, boolean recentementeVisualizado) {
-        this.id = id;
+    public Projeto(UUID id, String nome, String descricao, String gradiente) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.nome = nome;
         this.descricao = descricao;
         this.gradiente = gradiente != null ? gradiente : "linear-gradient(135deg, #a855f7, #ec4899)";
         this.dataCriacao = LocalDate.now();
         this.membrosCount = 3;
-        this.recentementeVisualizado = recentementeVisualizado;
         this.quantidadeDemandas = 5;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
+    }
+
+    public void setId(Object id) {
+        this.id = IdUtils.parseUuid(id);
+    }
+
+    public UUID getUuid() {
+        return id;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.id = uuid;
+    }
+
+    public UUID getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(UUID usuarioId) {
+        this.usuarioId = usuarioId;
+    }
+
+    public UUID getAreaTrabalhoUuid() {
+        return areaTrabalhoId;
+    }
+
+    public void setAreaTrabalhoUuid(UUID areaTrabalhoUuid) {
+        this.areaTrabalhoId = areaTrabalhoUuid;
     }
 
     public String getNome() {
@@ -87,13 +114,7 @@ public class Projeto {
         this.membrosCount = membrosCount;
     }
 
-    public boolean isRecentementeVisualizado() {
-        return recentementeVisualizado;
-    }
 
-    public void setRecentementeVisualizado(boolean recentementeVisualizado) {
-        this.recentementeVisualizado = recentementeVisualizado;
-    }
 
     public int getQuantidadeDemandas() {
         return quantidadeDemandas;
@@ -103,12 +124,16 @@ public class Projeto {
         this.quantidadeDemandas = quantidadeDemandas;
     }
 
-    public Long getAreaTrabalhoId() {
+    public UUID getAreaTrabalhoId() {
         return areaTrabalhoId;
     }
 
-    public void setAreaTrabalhoId(Long areaTrabalhoId) {
+    public void setAreaTrabalhoId(UUID areaTrabalhoId) {
         this.areaTrabalhoId = areaTrabalhoId;
+    }
+
+    public void setAreaTrabalhoId(Object areaTrabalhoId) {
+        this.areaTrabalhoId = IdUtils.parseUuid(areaTrabalhoId);
     }
 
     public String getUsuarioProprietario() {
@@ -120,7 +145,6 @@ public class Projeto {
     }
 
     @Override
-
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

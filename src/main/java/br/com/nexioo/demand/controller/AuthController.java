@@ -5,8 +5,11 @@ import br.com.nexioo.demand.dto.SupabaseUser;
 import br.com.nexioo.demand.service.SupabaseAuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,28 +20,28 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Controller responsável pelas rotas de autenticação (/login, /signup, /logout),
- * integrando de forma segura com o Supabase Auth como fonte de verdade.
+ * integrando de forma segura e stateless com o Supabase Auth.
  */
 @Controller
-@CrossOrigin(origins = "*")
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final SupabaseAuthService supabaseAuthService;
+    private final Environment environment;
 
-    public AuthController(SupabaseAuthService supabaseAuthService) {
+    public AuthController(SupabaseAuthService supabaseAuthService, Environment environment) {
         this.supabaseAuthService = supabaseAuthService;
+        this.environment = environment;
     }
 
     @GetMapping("/login")
-    public String loginPage(HttpSession session, Model model) {
-        if (session != null && session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO) != null) {
-            return "redirect:/projetos";
-        }
+    public String loginPage(HttpServletRequest request, Model model) {
         model.addAttribute("titulo", "Login");
         return "auth/login";
     }
@@ -67,16 +70,23 @@ public class AuthController {
                 user = supabaseAuthService.autenticar(email.trim(), password);
             }
 
-            // Prevenção contra Session Fixation
-            request.changeSessionId();
-            HttpSession activeSession = request.getSession(true);
-            activeSession.setAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO, user.getEmail());
-            activeSession.setAttribute("usuarioNome", user.getNome());
-            if (user.getAccessToken() != null && !user.getAccessToken().isBlank()) {
-                activeSession.setAttribute("supabaseAccessToken", user.getAccessToken());
+            adicionarCookiesAutenticacao(request, response, user);
+
+            // Rotaciona ID da sessão contra session fixation e login CSRF
+            try {
+                request.changeSessionId();
+                HttpSession activeSession = request.getSession(true);
+                activeSession.setAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO, user.getEmail());
+                activeSession.setAttribute("usuarioNome", user.getNome());
+                activeSession.setAttribute("usuarioId", user.getId());
+                if (user.getAccessToken() != null) {
+                    activeSession.setAttribute("supabaseAccessToken", user.getAccessToken());
+                }
+            } catch (Exception e) {
+                log.debug("Aviso ao rotacionar sessionId no login: {}", e.getMessage());
             }
 
-            log.info("Login bem-sucedido para o usuário: {}", user.getEmail());
+            log.info("Login bem-sucedido para usuário autenticado.");
 
             if (isAjax) {
                 return ResponseEntity.ok()
@@ -100,10 +110,7 @@ public class AuthController {
     }
 
     @GetMapping("/signup")
-    public String signupPage(HttpSession session, Model model) {
-        if (session != null && session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO) != null) {
-            return "redirect:/projetos";
-        }
+    public String signupPage(HttpServletRequest request, Model model) {
         model.addAttribute("titulo", "Sign Up");
         return "auth/signup";
     }
@@ -115,6 +122,7 @@ public class AuthController {
             @RequestParam(required = false) String nome,
             @RequestParam(required = false) String token,
             HttpServletRequest request,
+            HttpServletResponse response,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -132,16 +140,22 @@ public class AuthController {
                 user = supabaseAuthService.cadastrar(email.trim(), password, nome);
             }
 
-            // Prevenção contra Session Fixation
-            request.changeSessionId();
-            HttpSession activeSession = request.getSession(true);
-            activeSession.setAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO, user.getEmail());
-            activeSession.setAttribute("usuarioNome", user.getNome());
-            if (user.getAccessToken() != null && !user.getAccessToken().isBlank()) {
-                activeSession.setAttribute("supabaseAccessToken", user.getAccessToken());
+            adicionarCookiesAutenticacao(request, response, user);
+
+            try {
+                request.changeSessionId();
+                HttpSession activeSession = request.getSession(true);
+                activeSession.setAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO, user.getEmail());
+                activeSession.setAttribute("usuarioNome", user.getNome());
+                activeSession.setAttribute("usuarioId", user.getId());
+                if (user.getAccessToken() != null) {
+                    activeSession.setAttribute("supabaseAccessToken", user.getAccessToken());
+                }
+            } catch (Exception e) {
+                log.debug("Aviso ao rotacionar sessionId no cadastro: {}", e.getMessage());
             }
 
-            log.info("Cadastro realizado com sucesso para o usuário: {}", user.getEmail());
+            log.info("Cadastro realizado com sucesso.");
 
             if (isAjax) {
                 return ResponseEntity.ok()
@@ -162,33 +176,102 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/logout")
-    public String logout(HttpServletRequest request, HttpServletResponse response) {
-        encerrarSessao(request, response);
-        return "redirect:/login";
-    }
-
     @PostMapping("/logout")
-    @ResponseBody
-    public ResponseEntity<String> logoutPost(HttpServletRequest request, HttpServletResponse response) {
+    public Object logoutPost(HttpServletRequest request, HttpServletResponse response) {
         encerrarSessao(request, response);
+        String requestedWith = request.getHeader("X-Requested-With");
+        String accept = request.getHeader("Accept");
+        if ("XMLHttpRequest".equalsIgnoreCase(requestedWith) || (accept != null && accept.contains("application/json"))) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"status\":\"ok\",\"redirect\":\"/login\"}");
+        }
+        if (accept != null && accept.contains("text/html")) {
+            return "redirect:/login";
+        }
         return ResponseEntity.ok("Deslogado com sucesso");
     }
 
-    private void encerrarSessao(HttpServletRequest request, HttpServletResponse response) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
+    private void adicionarCookiesAutenticacao(HttpServletRequest request, HttpServletResponse response, SupabaseUser user) {
+        boolean isSecure = isSecureCookie(request);
+        long accessAge = (user.getExpiresIn() != null && user.getExpiresIn() > 0) ? user.getExpiresIn() : 3600;
+
+        if (user.getAccessToken() != null && !user.getAccessToken().isBlank()) {
+            ResponseCookie accessCookie = ResponseCookie.from(AuthInterceptor.COOKIE_ACCESS_TOKEN, user.getAccessToken())
+                    .path("/")
+                    .httpOnly(true)
+                    .secure(isSecure)
+                    .sameSite("Lax")
+                    .maxAge(accessAge)
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         }
 
-        Cookie cookie = new Cookie("JSESSIONID", "");
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
+        if (user.getRefreshToken() != null && !user.getRefreshToken().isBlank()) {
+            ResponseCookie refreshCookie = ResponseCookie.from(AuthInterceptor.COOKIE_REFRESH_TOKEN, user.getRefreshToken())
+                    .path("/")
+                    .httpOnly(true)
+                    .secure(isSecure)
+                    .sameSite("Lax")
+                    .maxAge(2592000) // 30 dias
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        }
+    }
 
-        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0);
+    private void encerrarSessao(HttpServletRequest request, HttpServletResponse response) {
+        String accessToken = null;
+        if (request.getCookies() != null) {
+            for (Cookie c : request.getCookies()) {
+                if (AuthInterceptor.COOKIE_ACCESS_TOKEN.equals(c.getName())) {
+                    accessToken = c.getValue();
+                }
+            }
+        }
+
+        try {
+            if (accessToken != null && !accessToken.isBlank()) {
+                supabaseAuthService.revogarSessao(accessToken);
+            }
+        } catch (Exception e) {
+            log.debug("Revogação remota no Supabase Auth concluída ou não disponível: {}", e.getMessage());
+        } finally {
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                session.invalidate();
+            }
+
+            boolean isSecure = isSecureCookie(request);
+
+            // Exclusão com os mesmos atributos de criação dos cookies
+            ResponseCookie cleanAccess = ResponseCookie.from(AuthInterceptor.COOKIE_ACCESS_TOKEN, "")
+                    .path("/").maxAge(0).httpOnly(true).secure(isSecure).sameSite("Lax").build();
+            ResponseCookie cleanRefresh = ResponseCookie.from(AuthInterceptor.COOKIE_REFRESH_TOKEN, "")
+                    .path("/").maxAge(0).httpOnly(true).secure(isSecure).sameSite("Lax").build();
+            ResponseCookie cleanSession = ResponseCookie.from("JSESSIONID", "")
+                    .path("/").maxAge(0).httpOnly(true).secure(isSecure).sameSite("Lax").build();
+
+            response.addHeader(HttpHeaders.SET_COOKIE, cleanAccess.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, cleanRefresh.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, cleanSession.toString());
+
+            response.setHeader("Clear-Site-Data", "\"cache\", \"cookies\", \"storage\"");
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setDateHeader("Expires", 0);
+        }
+    }
+
+    private boolean isSecureCookie(HttpServletRequest request) {
+        if (request.isSecure()) {
+            return true;
+        }
+        if (environment != null) {
+            List<String> active = Arrays.asList(environment.getActiveProfiles());
+            if (active.contains("prod")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

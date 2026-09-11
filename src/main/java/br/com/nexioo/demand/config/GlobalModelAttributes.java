@@ -8,14 +8,50 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 /**
- * Fornece atributos globais do usuário logado (nome, email e iniciais automáticas)
+ * Fornece atributos globais do usuário logado diretamente a partir do UserContext
  * para todos os templates do Spring MVC.
  */
 @ControllerAdvice
 public class GlobalModelAttributes {
 
+    private final org.springframework.beans.factory.ObjectProvider<UserContext> userContextProvider;
+
+    public GlobalModelAttributes(org.springframework.beans.factory.ObjectProvider<UserContext> userContextProvider) {
+        this.userContextProvider = userContextProvider;
+    }
+
     @ModelAttribute
     public void popularAtributosUsuario(HttpServletRequest request, Model model) {
+        Object csrf = request.getAttribute(CsrfTokenService.CSRF_ATTR_NAME);
+        if (csrf != null) {
+            model.addAttribute("_csrf", csrf);
+            model.addAttribute("csrfToken", csrf);
+        }
+
+        UserContext userContext = null;
+        try {
+            userContext = userContextProvider != null ? userContextProvider.getIfAvailable() : null;
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GlobalModelAttributes.class)
+                    .debug("UserContext indisponível na requisição: {}", e.getMessage());
+        }
+
+        if (userContext != null && userContext.isAutenticado()) {
+            String email = userContext.getEmail();
+            String nome = userContext.getNome();
+            if (nome == null || nome.isBlank()) {
+                nome = extrairNomeDeEmail(email);
+            }
+            String iniciais = gerarIniciais(nome);
+
+            model.addAttribute("usuarioLogadoId", userContext.getUsuarioId());
+            model.addAttribute("usuarioLogadoEmail", email);
+            model.addAttribute("usuarioLogadoNome", nome);
+            model.addAttribute("usuarioIniciais", iniciais);
+            return;
+        }
+
+        // Suporte retrocompatível para ambiente de teste via sessão
         HttpSession session = request.getSession(false);
         if (session != null && session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO) != null) {
             String email = (String) session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO);
@@ -28,16 +64,17 @@ public class GlobalModelAttributes {
             model.addAttribute("usuarioLogadoEmail", email);
             model.addAttribute("usuarioLogadoNome", nome);
             model.addAttribute("usuarioIniciais", iniciais);
-        } else {
-            model.addAttribute("usuarioLogadoEmail", "convidado@nexioo.com.br");
-            model.addAttribute("usuarioLogadoNome", "Convidado");
-            model.addAttribute("usuarioIniciais", "C");
+            return;
         }
+
+        model.addAttribute("usuarioLogadoEmail", "");
+        model.addAttribute("usuarioLogadoNome", "");
+        model.addAttribute("usuarioIniciais", "");
     }
 
     public static String extrairNomeDeEmail(String email) {
         if (email == null || email.isBlank()) {
-            return "Samuel Oliveira";
+            return "Usuário";
         }
         String local = email.contains("@") ? email.substring(0, email.indexOf("@")) : email;
         String[] partes = local.split("[._-]");
@@ -49,12 +86,13 @@ public class GlobalModelAttributes {
                   .append(" ");
             }
         }
-        return sb.toString().trim();
+        String resultado = sb.toString().trim();
+        return resultado.isEmpty() ? "Usuário" : resultado;
     }
 
     public static String gerarIniciais(String nome) {
         if (nome == null || nome.isBlank()) {
-            return "SP";
+            return "U";
         }
         String limpo = nome.trim();
         String[] partes = limpo.split("\\s+");
@@ -65,6 +103,6 @@ public class GlobalModelAttributes {
             String ultima = partes[partes.length - 1].substring(0, 1).toUpperCase();
             return primeira + ultima;
         }
-        return "SP";
+        return "U";
     }
 }

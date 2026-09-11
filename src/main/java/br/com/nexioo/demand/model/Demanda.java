@@ -10,7 +10,9 @@ import java.util.List;
  */
 public class Demanda {
 
-    private Long id;
+    private java.util.UUID id;
+    private java.util.UUID usuarioId;
+    private java.util.UUID projetoId;
     private String titulo;
     private String descricao;
     private Coluna coluna;
@@ -22,7 +24,6 @@ public class Demanda {
 
     private boolean concluido = false;
     private String imagemUrl;
-    private Long projetoId = 100L;
     private Integer posicao = 0;
 
     private List<Etiqueta> etiquetas = new ArrayList<>();
@@ -106,7 +107,7 @@ public class Demanda {
             this.atividades = new ArrayList<>();
         }
         this.atividades.add(0, new ItemAtividade(
-                (autor != null && !autor.isBlank()) ? autor : "Samuel Oliveira",
+                (autor != null && !autor.isBlank()) ? autor : "Usuário",
                 texto,
                 LocalDateTime.now(),
                 isComentario
@@ -141,12 +142,52 @@ public class Demanda {
 
     // ── Getters e Setters ────────────────────────────────────────────────────
 
-    public Long getId() {
+    public java.util.UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(java.util.UUID id) {
         this.id = id;
+    }
+
+    public void setId(Object id) {
+        this.id = br.com.nexioo.demand.util.IdUtils.parseUuid(id);
+    }
+
+    public java.util.UUID getUuid() {
+        return id;
+    }
+
+    public void setUuid(java.util.UUID uuid) {
+        this.id = uuid;
+    }
+
+    public java.util.UUID getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(java.util.UUID usuarioId) {
+        this.usuarioId = usuarioId;
+    }
+
+    public java.util.UUID getProjetoUuid() {
+        return projetoId;
+    }
+
+    public void setProjetoUuid(java.util.UUID projetoUuid) {
+        this.projetoId = projetoUuid;
+    }
+
+    public java.util.UUID getProjetoId() {
+        return projetoId;
+    }
+
+    public void setProjetoId(java.util.UUID projetoId) {
+        this.projetoId = projetoId;
+    }
+
+    public void setProjetoId(Object projetoId) {
+        this.projetoId = br.com.nexioo.demand.util.IdUtils.parseUuid(projetoId);
     }
 
     public String getTitulo() {
@@ -211,14 +252,6 @@ public class Demanda {
 
     public void setAtualizadoEm(LocalDateTime atualizadoEm) {
         this.atualizadoEm = atualizadoEm;
-    }
-
-    public Long getProjetoId() {
-        return projetoId;
-    }
-
-    public void setProjetoId(Long projetoId) {
-        this.projetoId = projetoId;
     }
 
     public Integer getPosicao() {

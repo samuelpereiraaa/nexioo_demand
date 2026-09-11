@@ -10,7 +10,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 
@@ -22,18 +21,59 @@ public class DemandaServiceImpl implements DemandaService {
 
     private final DemandaRepository demandaRepository;
     private final ColunaService colunaService;
-    private final AtomicLong checklistIdGenerator = new AtomicLong(100);
-    private final AtomicLong itemIdGenerator = new AtomicLong(1000);
+    private final br.com.nexioo.demand.config.UserContext userContext;
+    private final br.com.nexioo.demand.repository.ProjetoRepository projetoRepository;
 
-    public DemandaServiceImpl(DemandaRepository demandaRepository, ColunaService colunaService) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public DemandaServiceImpl(DemandaRepository demandaRepository,
+                              ColunaService colunaService,
+                              br.com.nexioo.demand.config.UserContext userContext,
+                              @org.springframework.context.annotation.Lazy br.com.nexioo.demand.repository.ProjetoRepository projetoRepository) {
         this.demandaRepository = demandaRepository;
         this.colunaService = colunaService;
+        this.userContext = userContext;
+        this.projetoRepository = projetoRepository;
+    }
+
+    public DemandaServiceImpl(DemandaRepository demandaRepository,
+                              ColunaService colunaService,
+                              br.com.nexioo.demand.config.UserContext userContext) {
+        this(demandaRepository, colunaService, userContext, null);
+    }
+
+    public DemandaServiceImpl(DemandaRepository demandaRepository, ColunaService colunaService) {
+        this(demandaRepository, colunaService, null, null);
+    }
+
+    private String obterNomeUsuario() {
+        if (userContext != null && userContext.isAutenticado()) {
+            if (userContext.getNome() != null && !userContext.getNome().isBlank()) {
+                return userContext.getNome().trim();
+            }
+            if (userContext.getEmail() != null && !userContext.getEmail().isBlank()) {
+                return userContext.getEmail().trim();
+            }
+        }
+        return "Usuário";
     }
 
     @Override
     public Demanda criar(DemandaForm form) {
+        if (userContext == null || !userContext.isAutenticado()) {
+            throw new SecurityException("Usuário não autenticado.");
+        }
+        UUID uid = userContext.requireUsuarioId();
         Demanda demanda = new Demanda();
         aplicarForm(demanda, form);
+        demanda.setUsuarioId(uid);
+        if (demanda.getProjetoId() != null) {
+            if (projetoRepository != null) {
+                projetoRepository.buscarPorIdEUsuario(demanda.getProjetoId(), uid)
+                        .orElseThrow(() -> new SecurityException("Tentativa de associar demanda a um projeto que não pertence ao usuário."));
+            }
+        } else {
+            throw new IllegalArgumentException("O projeto é obrigatório para criar uma demanda.");
+        }
         demanda.setCriadoEm(LocalDateTime.now());
         demanda.setAtualizadoEm(LocalDateTime.now());
 
@@ -44,31 +84,44 @@ public class DemandaServiceImpl implements DemandaService {
         demanda.setPosicao(demandasColuna.size());
 
         demanda.registrarAtividade(
-                demanda.getResponsavel() != null ? demanda.getResponsavel() : "Samuel Oliveira",
-                "adicionou este cartão a " + demanda.getColuna().getDescricao()
+                demanda.getResponsavel() != null ? demanda.getResponsavel() : obterNomeUsuario(),
+                "adicionou este cartão a " + (demanda.getColuna() != null ? demanda.getColuna().getDescricao() : "quadro")
         );
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda buscarPorId(Long id) {
-        return demandaRepository.buscarPorId(id)
+    public Demanda buscarPorId(UUID id) {
+        if (id == null) {
+            throw new DemandaNaoEncontradaException(id);
+        }
+        if (userContext == null || !userContext.isAutenticado()) {
+            throw new SecurityException("Usuário não autenticado.");
+        }
+        UUID uid = userContext.requireUsuarioId();
+        return demandaRepository.buscarPorIdEUsuario(id, uid)
                 .orElseThrow(() -> new DemandaNaoEncontradaException(id));
     }
 
     @Override
     public List<Demanda> listarTodas() {
-        return demandaRepository.listarTodas();
+        if (userContext == null || !userContext.isAutenticado()) {
+            throw new SecurityException("Usuário não autenticado.");
+        }
+        UUID uid = userContext.requireUsuarioId();
+        return demandaRepository.listarPorUsuario(uid);
     }
 
     @Override
-    public List<Demanda> listarPorProjeto(Long projetoId) {
-        if (projetoId == null) {
-            return listarTodas();
+    public List<Demanda> listarPorProjeto(UUID projetoId) {
+        if (userContext == null || !userContext.isAutenticado()) {
+            throw new SecurityException("Usuário não autenticado.");
         }
-        return demandaRepository.listarTodas().stream()
-                .filter(d -> d.getProjetoId() == null || d.getProjetoId().equals(projetoId))
-                .collect(Collectors.toList());
+        UUID uid = userContext.requireUsuarioId();
+        if (projetoId == null) {
+            return demandaRepository.listarPorUsuario(uid);
+        }
+        return demandaRepository.listarPorProjetoEUsuario(projetoId, uid);
     }
 
     @Override
@@ -77,8 +130,8 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Map<Coluna, List<Demanda>> listarPorColuna(Long projetoId) {
-        Map<Coluna, List<Demanda>> resultado = inicializarMapaPorColuna();
+    public Map<Coluna, List<Demanda>> listarPorColuna(UUID projetoId) {
+        Map<Coluna, List<Demanda>> resultado = inicializarMapaPorColuna(projetoId);
         for (Demanda demanda : listarPorProjeto(projetoId)) {
             if (resultado.containsKey(demanda.getColuna())) {
                 resultado.get(demanda.getColuna()).add(demanda);
@@ -98,8 +151,8 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Map<Coluna, List<Demanda>> filtrar(Long projetoId, String termo, Prioridade prioridade, String responsavel) {
-        Map<Coluna, List<Demanda>> resultado = inicializarMapaPorColuna();
+    public Map<Coluna, List<Demanda>> filtrar(UUID projetoId, String termo, Prioridade prioridade, String responsavel) {
+        Map<Coluna, List<Demanda>> resultado = inicializarMapaPorColuna(projetoId);
         for (Demanda demanda : listarPorProjeto(projetoId)) {
             if (corresponde(demanda, termo, prioridade, responsavel)) {
                 if (resultado.containsKey(demanda.getColuna())) {
@@ -117,7 +170,7 @@ public class DemandaServiceImpl implements DemandaService {
 
 
     @Override
-    public Demanda editar(Long id, DemandaForm form) {
+    public Demanda editar(UUID id, DemandaForm form) {
         Demanda demanda = buscarPorId(id);
         Coluna colunaAnterior = demanda.getColuna();
         Prioridade prioridadeAnterior = demanda.getPrioridade();
@@ -126,66 +179,68 @@ public class DemandaServiceImpl implements DemandaService {
         demanda.setAtualizadoEm(LocalDateTime.now());
 
         if (colunaAnterior != null && !colunaAnterior.equals(demanda.getColuna())) {
-            demanda.registrarAtividade("Samuel Oliveira", "moveu este cartão para " + demanda.getColuna().getDescricao());
+            demanda.registrarAtividade(obterNomeUsuario(), "moveu este cartão para " + demanda.getColuna().getDescricao());
         } else if (prioridadeAnterior != null && !prioridadeAnterior.equals(demanda.getPrioridade())) {
-            demanda.registrarAtividade("Samuel Oliveira", "alterou a prioridade para " + demanda.getPrioridade().getDescricao());
+            demanda.registrarAtividade(obterNomeUsuario(), "alterou a prioridade para " + demanda.getPrioridade().getDescricao());
         } else {
-            demanda.registrarAtividade("Samuel Oliveira", "atualizou as informações deste cartão");
+            demanda.registrarAtividade(obterNomeUsuario(), "atualizou as informações deste cartão");
         }
 
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda atualizarTitulo(Long id, String titulo) {
+    public Demanda atualizarTitulo(UUID id, String titulo) {
         Demanda demanda = buscarPorId(id);
         String tituloSanitizado = sanitizarTextoLimitado(titulo, 120);
         if (tituloSanitizado != null && !tituloSanitizado.isBlank() && !tituloSanitizado.equals(demanda.getTitulo())) {
             demanda.setTitulo(tituloSanitizado);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "alterou o título para \"" + tituloSanitizado + "\"");
+            demanda.registrarAtividade(obterNomeUsuario(), "alterou o título para \"" + tituloSanitizado + "\"");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda atualizarDescricao(Long id, String descricao) {
+    public Demanda atualizarDescricao(UUID id, String descricao) {
         Demanda demanda = buscarPorId(id);
         String descSanitizada = sanitizarTextoLimitado(descricao, 2000);
         demanda.setDescricao(descSanitizada);
         demanda.setAtualizadoEm(LocalDateTime.now());
-        demanda.registrarAtividade("Samuel Oliveira", "atualizou a descrição deste cartão");
+        demanda.registrarAtividade(obterNomeUsuario(), "atualizou a descrição deste cartão");
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda alterarColuna(Long id, Coluna novaColuna) {
+    public Demanda alterarColuna(UUID id, Coluna novaColuna) {
         Demanda demanda = buscarPorId(id);
-        Coluna colunaDestino = novaColuna != null ? novaColuna : colunaService.buscarPadrao();
+        Coluna colunaDestino = novaColuna != null ? novaColuna : colunaService.buscarPadrao(demanda.getProjetoId());
         if (!colunaDestino.equals(demanda.getColuna())) {
             demanda.setColuna(colunaDestino);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "moveu este cartão para " + colunaDestino.getDescricao());
+            demanda.registrarAtividade(obterNomeUsuario(), "moveu este cartão para " + colunaDestino.getDescricao());
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda mover(Long id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, Long projetoId, String usuario) {
+    public Demanda mover(UUID id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, UUID projetoId, String usuario) {
         Demanda demanda = buscarPorId(id);
 
+        UUID effectiveProjetoId = (projetoId != null) ? projetoId : demanda.getProjetoId();
+
         Coluna colOrig = (colunaOrigemId != null && !colunaOrigemId.isBlank())
-                ? colunaService.buscarPorId(colunaOrigemId)
+                ? colunaService.buscarPorId(colunaOrigemId, effectiveProjetoId)
                 : demanda.getColuna();
 
         Coluna colDest = (colunaDestinoId != null && !colunaDestinoId.isBlank())
-                ? colunaService.buscarPorId(colunaDestinoId)
+                ? colunaService.buscarPorId(colunaDestinoId, effectiveProjetoId)
                 : demanda.getColuna();
 
         if (colDest == null) {
-            colDest = colunaService.buscarPadrao();
+            colDest = colunaService.buscarPadrao(effectiveProjetoId);
         }
 
         final Coluna colunaOrigem = colOrig;
@@ -195,7 +250,6 @@ public class DemandaServiceImpl implements DemandaService {
             throw new IllegalArgumentException("Demanda não pertence ao projeto informado.");
         }
 
-        Long effectiveProjetoId = (projetoId != null) ? projetoId : demanda.getProjetoId();
         List<Demanda> todasDoProjeto = listarPorProjeto(effectiveProjetoId);
 
         boolean mesmaColuna = colunaOrigem != null && colunaOrigem.equals(colunaDestino);
@@ -219,7 +273,7 @@ public class DemandaServiceImpl implements DemandaService {
 
             demanda.setPosicao(pos);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            String autor = (usuario != null && !usuario.isBlank()) ? usuario : "Samuel Oliveira";
+            String autor = (usuario != null && !usuario.isBlank()) ? usuario : obterNomeUsuario();
             demanda.registrarAtividade(autor, "reordenou este cartão para a posição " + (pos + 1));
             return demandaRepository.salvar(demanda);
         } else {
@@ -255,81 +309,80 @@ public class DemandaServiceImpl implements DemandaService {
             demanda.setColuna(colunaDestino);
             demanda.setPosicao(pos);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            String autor = (usuario != null && !usuario.isBlank()) ? usuario : "Samuel Oliveira";
+            String autor = (usuario != null && !usuario.isBlank()) ? usuario : obterNomeUsuario();
             demanda.registrarAtividade(autor, "moveu este cartão para " + colunaDestino.getDescricao() + " (posição " + (pos + 1) + ")");
             return demandaRepository.salvar(demanda);
         }
     }
 
     @Override
-    public Demanda alternarConclusao(Long id) {
-
+    public Demanda alternarConclusao(UUID id) {
         Demanda demanda = buscarPorId(id);
         boolean novoEstado = !demanda.isConcluido();
         demanda.setConcluido(novoEstado);
         demanda.setAtualizadoEm(LocalDateTime.now());
         demanda.registrarAtividade(
-                "Samuel Oliveira",
+                obterNomeUsuario(),
                 novoEstado ? "concluiu esta demanda" : "reabriu esta demanda"
         );
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda adicionarImagem(Long id, String imagemUrl) {
+    public Demanda adicionarImagem(UUID id, String imagemUrl) {
         Demanda demanda = buscarPorId(id);
         if (imagemUrl != null && !imagemUrl.isBlank()) {
             demanda.adicionarImagemNaLista(imagemUrl.trim());
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "anexou uma imagem à demanda");
+            demanda.registrarAtividade(obterNomeUsuario(), "anexou uma imagem à demanda");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda removerImagem(Long id) {
+    public Demanda removerImagem(UUID id) {
         Demanda demanda = buscarPorId(id);
         demanda.setImagemUrl(null);
         demanda.getAnexos().clear();
         demanda.setAtualizadoEm(LocalDateTime.now());
-        demanda.registrarAtividade("Samuel Oliveira", "removeu os anexos da demanda");
+        demanda.registrarAtividade(obterNomeUsuario(), "removeu os anexos da demanda");
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda removerImagemEspecifica(Long id, String imagemUrl) {
+    public Demanda removerImagemEspecifica(UUID id, String imagemUrl) {
         Demanda demanda = buscarPorId(id);
         if (imagemUrl != null) {
             demanda.removerImagemDaLista(imagemUrl);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "removeu uma imagem da demanda");
+            demanda.registrarAtividade(obterNomeUsuario(), "removeu uma imagem da demanda");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda adicionarAnexo(Long id, String nome, String url) {
+    public Demanda adicionarAnexo(UUID id, String nome, String url) {
         Demanda demanda = buscarPorId(id);
         if (url != null && !url.isBlank()) {
             Anexo anexo = demanda.adicionarAnexo(nome, url.trim());
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "anexou " + anexo.getNome() + " a este cartão");
+            demanda.registrarAtividade(obterNomeUsuario(), "anexou " + anexo.getNome() + " a este cartão");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda removerAnexo(Long id, String anexoId) {
+    public Demanda removerAnexo(UUID id, String anexoId) {
         Demanda demanda = buscarPorId(id);
         if (anexoId != null) {
             Anexo a = demanda.getAnexoById(anexoId);
             String nome = a != null ? a.getNome() : "anexo";
             if (demanda.removerAnexo(anexoId)) {
                 demanda.setAtualizadoEm(LocalDateTime.now());
-                demanda.registrarAtividade("Samuel Oliveira", "removeu o anexo \"" + nome + "\"");
+                demanda.registrarAtividade(obterNomeUsuario(), "removeu o anexo \"" + nome + "\"");
                 demandaRepository.salvar(demanda);
             }
         }
@@ -337,50 +390,47 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda definirCapaAnexo(Long id, String anexoId, boolean capa) {
+    public Demanda definirCapaAnexo(UUID id, String anexoId, boolean capa) {
         Demanda demanda = buscarPorId(id);
         if (anexoId != null) {
             demanda.definirCapa(anexoId, capa);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", capa ? "definiu o anexo como capa" : "removeu a capa deste cartão");
+            demanda.registrarAtividade(obterNomeUsuario(), capa ? "definiu o anexo como capa" : "removeu a capa deste cartão");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda renomearAnexo(Long id, String anexoId, String novoNome) {
+    public Demanda renomearAnexo(UUID id, String anexoId, String novoNome) {
         Demanda demanda = buscarPorId(id);
         if (anexoId != null && novoNome != null && !novoNome.isBlank()) {
             demanda.renomearAnexo(anexoId, novoNome);
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "renomeou o anexo para \"" + novoNome.trim() + "\"");
+            demanda.registrarAtividade(obterNomeUsuario(), "renomeou o anexo para \"" + novoNome.trim() + "\"");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda comentarAnexo(Long id, String anexoId, String texto, String autor) {
+    public Demanda comentarAnexo(UUID id, String anexoId, String texto, String autor) {
         Demanda demanda = buscarPorId(id);
         Anexo a = demanda.getAnexoById(anexoId);
         String prefixo = (a != null) ? ("[" + a.getNome() + "] ") : "";
-        String autorFinal = (autor != null && !autor.isBlank()) ? autor : "Samuel Oliveira";
+        String autorFinal = (autor != null && !autor.isBlank()) ? autor : obterNomeUsuario();
         demanda.registrarComentario(autorFinal, prefixo + (texto != null ? texto.trim() : ""));
         demanda.setAtualizadoEm(LocalDateTime.now());
         return demandaRepository.salvar(demanda);
     }
 
-
-
-
     @Override
-    public Demanda adicionarComentario(Long id, String texto, String autor) {
+    public Demanda adicionarComentario(UUID id, String texto, String autor) {
         Demanda demanda = buscarPorId(id);
         String textoSanitizado = sanitizarTexto(texto);
         if (textoSanitizado != null && !textoSanitizado.isBlank()) {
             demanda.registrarComentario(
-                    (autor != null && !autor.isBlank()) ? autor : "Samuel Oliveira",
+                    (autor != null && !autor.isBlank()) ? autor : obterNomeUsuario(),
                     textoSanitizado
             );
             demanda.setAtualizadoEm(LocalDateTime.now());
@@ -390,7 +440,7 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda adicionarEtiqueta(Long id, String nome, String corHex) {
+    public Demanda adicionarEtiqueta(UUID id, String nome, String corHex) {
         Demanda demanda = buscarPorId(id);
         String nomeSanitizado = sanitizarTexto(nome);
         if (nomeSanitizado != null && !nomeSanitizado.isBlank()) {
@@ -402,7 +452,7 @@ public class DemandaServiceImpl implements DemandaService {
                 Etiqueta etiqueta = new Etiqueta(etiquetaId, nomeSanitizado, corValida);
                 demanda.getEtiquetas().add(etiqueta);
                 demanda.setAtualizadoEm(LocalDateTime.now());
-                demanda.registrarAtividade("Samuel Oliveira", "adicionou a etiqueta \"" + nomeSanitizado + "\"");
+                demanda.registrarAtividade(obterNomeUsuario(), "adicionou a etiqueta \"" + nomeSanitizado + "\"");
                 demandaRepository.salvar(demanda);
             }
         }
@@ -410,50 +460,49 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda removerEtiqueta(Long id, String etiquetaId) {
+    public Demanda removerEtiqueta(UUID id, String etiquetaId) {
         Demanda demanda = buscarPorId(id);
         if (etiquetaId != null && !etiquetaId.isBlank()) {
             boolean removido = demanda.getEtiquetas().removeIf(e ->
                     e.getId().equalsIgnoreCase(etiquetaId) || e.getNome().equalsIgnoreCase(etiquetaId));
             if (removido) {
                 demanda.setAtualizadoEm(LocalDateTime.now());
-                demanda.registrarAtividade("Samuel Oliveira", "removeu uma etiqueta");
+                demanda.registrarAtividade(obterNomeUsuario(), "removeu uma etiqueta");
                 demandaRepository.salvar(demanda);
             }
         }
         return demanda;
     }
 
-
     @Override
-    public Demanda definirPrazo(Long id, LocalDate prazo) {
+    public Demanda definirPrazo(UUID id, LocalDate prazo) {
         Demanda demanda = buscarPorId(id);
         demanda.setPrazo(prazo);
         demanda.setAtualizadoEm(LocalDateTime.now());
         if (prazo != null) {
             String dataFmt = prazo.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            demanda.registrarAtividade("Samuel Oliveira", "definiciu o prazo para " + dataFmt);
+            demanda.registrarAtividade(obterNomeUsuario(), "definiciu o prazo para " + dataFmt);
         } else {
-            demanda.registrarAtividade("Samuel Oliveira", "removeu o prazo deste cartão");
+            demanda.registrarAtividade(obterNomeUsuario(), "removeu o prazo deste cartão");
         }
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda adicionarChecklist(Long id, String titulo) {
+    public Demanda adicionarChecklist(UUID id, String titulo) {
         Demanda demanda = buscarPorId(id);
         String tituloSanitizado = (titulo != null && !titulo.isBlank())
                 ? sanitizarTextoLimitado(titulo, 120)
                 : "Checklist";
-        Checklist c = new Checklist(checklistIdGenerator.incrementAndGet(), tituloSanitizado);
+        Checklist c = new Checklist(UUID.randomUUID(), tituloSanitizado);
         demanda.getChecklists().add(c);
         demanda.setAtualizadoEm(LocalDateTime.now());
-        demanda.registrarAtividade("Samuel Oliveira", "adicionou a checklist \"" + tituloSanitizado + "\"");
+        demanda.registrarAtividade(obterNomeUsuario(), "adicionou a checklist \"" + tituloSanitizado + "\"");
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public Demanda renomearChecklist(Long id, Long checklistId, String titulo) {
+    public Demanda renomearChecklist(UUID id, UUID checklistId, String titulo) {
         Demanda demanda = buscarPorId(id);
         String tituloSanitizado = sanitizarTextoLimitado(titulo, 120);
         if (tituloSanitizado == null || tituloSanitizado.isBlank()) {
@@ -466,7 +515,7 @@ public class DemandaServiceImpl implements DemandaService {
                 checklist.setTitulo(tituloSanitizado);
                 demanda.setAtualizadoEm(LocalDateTime.now());
                 demanda.registrarAtividade(
-                        "Samuel Oliveira",
+                        obterNomeUsuario(),
                         "renomeou uma checklist para \"" + tituloSanitizado + "\""
                 );
                 demandaRepository.salvar(demanda);
@@ -477,28 +526,28 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda removerChecklist(Long id, Long checklistId) {
+    public Demanda removerChecklist(UUID id, UUID checklistId) {
         Demanda demanda = buscarPorId(id);
         boolean removido = demanda.getChecklists().removeIf(c -> c.getId().equals(checklistId));
         if (removido) {
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "removeu uma checklist");
+            demanda.registrarAtividade(obterNomeUsuario(), "removeu uma checklist");
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda adicionarItemChecklist(Long id, Long checklistId, String texto) {
+    public Demanda adicionarItemChecklist(UUID id, UUID checklistId, String texto) {
         Demanda demanda = buscarPorId(id);
         String textoSanitizado = sanitizarTextoLimitado(texto, 240);
         if (textoSanitizado != null && !textoSanitizado.isBlank()) {
             for (Checklist c : demanda.getChecklists()) {
                 if (c.getId().equals(checklistId)) {
-                    ChecklistItem item = new ChecklistItem(itemIdGenerator.incrementAndGet(), textoSanitizado, false);
+                    ChecklistItem item = new ChecklistItem(UUID.randomUUID(), textoSanitizado, false);
                     c.getItens().add(item);
                     demanda.setAtualizadoEm(LocalDateTime.now());
-                    demanda.registrarAtividade("Samuel Oliveira", "adicionou o item \"" + textoSanitizado + "\" a checklist");
+                    demanda.registrarAtividade(obterNomeUsuario(), "adicionou o item \"" + textoSanitizado + "\" a checklist");
                     break;
                 }
             }
@@ -508,7 +557,7 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda toggleItemChecklist(Long id, Long checklistId, Long itemId) {
+    public Demanda toggleItemChecklist(UUID id, UUID checklistId, UUID itemId) {
         Demanda demanda = buscarPorId(id);
         for (Checklist c : demanda.getChecklists()) {
             if (c.getId().equals(checklistId)) {
@@ -516,7 +565,7 @@ public class DemandaServiceImpl implements DemandaService {
                     if (item.getId().equals(itemId)) {
                         item.setConcluido(!item.isConcluido());
                         demanda.setAtualizadoEm(LocalDateTime.now());
-                        demanda.registrarAtividade("Samuel Oliveira",
+                        demanda.registrarAtividade(obterNomeUsuario(),
                                 (item.isConcluido() ? "concluiu" : "reabriu") + " o item \"" + item.getTexto() + "\"");
                         break;
                     }
@@ -528,7 +577,7 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda atualizarItemChecklist(Long id, Long checklistId, Long itemId, String texto) {
+    public Demanda atualizarItemChecklist(UUID id, UUID checklistId, UUID itemId, String texto) {
         Demanda demanda = buscarPorId(id);
         String textoSanitizado = sanitizarTextoLimitado(texto, 240);
         if (textoSanitizado == null || textoSanitizado.isBlank()) {
@@ -544,7 +593,7 @@ public class DemandaServiceImpl implements DemandaService {
                     item.setTexto(textoSanitizado);
                     demanda.setAtualizadoEm(LocalDateTime.now());
                     demanda.registrarAtividade(
-                            "Samuel Oliveira",
+                            obterNomeUsuario(),
                             "atualizou um item da checklist para \"" + textoSanitizado + "\""
                     );
                     demandaRepository.salvar(demanda);
@@ -556,14 +605,14 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda removerItemChecklist(Long id, Long checklistId, Long itemId) {
+    public Demanda removerItemChecklist(UUID id, UUID checklistId, UUID itemId) {
         Demanda demanda = buscarPorId(id);
         for (Checklist c : demanda.getChecklists()) {
             if (c.getId().equals(checklistId)) {
                 boolean removido = c.getItens().removeIf(i -> i.getId().equals(itemId));
                 if (removido) {
                     demanda.setAtualizadoEm(LocalDateTime.now());
-                    demanda.registrarAtividade("Samuel Oliveira", "removeu um item da checklist");
+                    demanda.registrarAtividade(obterNomeUsuario(), "removeu um item da checklist");
                 }
                 break;
             }
@@ -572,7 +621,7 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda adicionarMembro(Long id, String membro) {
+    public Demanda adicionarMembro(UUID id, String membro) {
         Demanda demanda = buscarPorId(id);
         String membroSanitizado = sanitizarTexto(membro);
         if (membroSanitizado != null && !membroSanitizado.isBlank()) {
@@ -582,7 +631,7 @@ public class DemandaServiceImpl implements DemandaService {
                     demanda.setResponsavel(membroSanitizado);
                 }
                 demanda.setAtualizadoEm(LocalDateTime.now());
-                demanda.registrarAtividade("Samuel Oliveira", "adicionou o membro " + membroSanitizado);
+                demanda.registrarAtividade(obterNomeUsuario(), "adicionou o membro " + membroSanitizado);
                 demandaRepository.salvar(demanda);
             }
         }
@@ -590,35 +639,39 @@ public class DemandaServiceImpl implements DemandaService {
     }
 
     @Override
-    public Demanda removerMembro(Long id, String membro) {
+    public Demanda removerMembro(UUID id, String membro) {
         Demanda demanda = buscarPorId(id);
         if (demanda.getMembros().remove(membro)) {
             if (membro.equalsIgnoreCase(demanda.getResponsavel())) {
                 demanda.setResponsavel(demanda.getMembros().isEmpty() ? null : demanda.getMembros().get(0));
             }
             demanda.setAtualizadoEm(LocalDateTime.now());
-            demanda.registrarAtividade("Samuel Oliveira", "removeu o membro " + membro);
+            demanda.registrarAtividade(obterNomeUsuario(), "removeu o membro " + membro);
             demandaRepository.salvar(demanda);
         }
         return demanda;
     }
 
     @Override
-    public Demanda toggleAcompanhar(Long id) {
+    public Demanda toggleAcompanhar(UUID id) {
         Demanda demanda = buscarPorId(id);
         demanda.setAcompanhando(!demanda.isAcompanhando());
         demanda.setAtualizadoEm(LocalDateTime.now());
-        demanda.registrarAtividade("Samuel Oliveira",
+        demanda.registrarAtividade(obterNomeUsuario(),
                 demanda.isAcompanhando() ? "passou a acompanhar este cartão" : "deixou de acompanhar este cartão");
         return demandaRepository.salvar(demanda);
     }
 
     @Override
-    public void excluir(Long id) {
-        if (!demandaRepository.existePorId(id)) {
-            throw new DemandaNaoEncontradaException(id);
+    public void excluir(UUID id) {
+        if (id == null) return;
+        if (userContext == null || !userContext.isAutenticado()) {
+            throw new SecurityException("Usuário não autenticado.");
         }
-        demandaRepository.excluir(id);
+        UUID uid = userContext.requireUsuarioId();
+        Demanda d = demandaRepository.buscarPorIdEUsuario(id, uid)
+                .orElseThrow(() -> new DemandaNaoEncontradaException(id));
+        demandaRepository.excluirPorIdEUsuario(id, uid);
     }
 
     // ── Métodos auxiliares privados ──────────────────────────────────────────
@@ -641,7 +694,14 @@ public class DemandaServiceImpl implements DemandaService {
     private void aplicarForm(Demanda demanda, DemandaForm form) {
         demanda.setTitulo(sanitizarTextoLimitado(form.getTitulo(), 120));
         demanda.setDescricao(sanitizarTextoLimitado(form.getDescricao(), 2000));
-        demanda.setColuna(form.getColuna() != null ? form.getColuna() : colunaService.buscarPadrao());
+        Coluna col = form.getColuna();
+        if (col != null && form.getProjetoId() != null && colunaService != null) {
+            String colIdentifier = col.getUuid() != null ? col.getUuid().toString() : (col.getId() != null ? col.getId() : col.getCodigo());
+            col = colunaService.buscarPorId(colIdentifier, form.getProjetoId());
+        } else if (col == null && colunaService != null) {
+            col = colunaService.buscarPadrao(form.getProjetoId());
+        }
+        demanda.setColuna(col);
         demanda.setPrioridade(form.getPrioridade() != null ? form.getPrioridade() : Prioridade.MEDIA);
         String resp = (form.getResponsavel() != null && !form.getResponsavel().isBlank())
                 ? sanitizarTextoLimitado(form.getResponsavel(), 80)
@@ -656,10 +716,10 @@ public class DemandaServiceImpl implements DemandaService {
         }
     }
 
-
-    private Map<Coluna, List<Demanda>> inicializarMapaPorColuna() {
+    private Map<Coluna, List<Demanda>> inicializarMapaPorColuna(UUID projetoId) {
         Map<Coluna, List<Demanda>> mapa = new LinkedHashMap<>();
-        for (Coluna coluna : colunaService.listarTodas()) {
+        List<Coluna> colunas = (projetoId != null) ? colunaService.listarPorProjeto(projetoId) : colunaService.listarTodas();
+        for (Coluna coluna : colunas) {
             mapa.put(coluna, new ArrayList<>());
         }
         return mapa;

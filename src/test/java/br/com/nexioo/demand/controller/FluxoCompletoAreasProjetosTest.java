@@ -24,6 +24,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static br.com.nexioo.demand.util.CsrfTestUtils.withCsrf;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -51,21 +52,36 @@ class FluxoCompletoAreasProjetosTest {
     @Autowired
     private ColunaService colunaService;
 
+    @Autowired
+    private br.com.nexioo.demand.config.UserContext userContext;
+
     @MockBean
     private SupabaseAuthService supabaseAuthService;
+
+    private static final java.util.UUID UID_ANA = java.util.UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final java.util.UUID UID_JOAO = java.util.UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     @BeforeEach
     void setUp() {
         when(supabaseAuthService.autenticar("ana.silva@nexioo.com.br", "123456"))
-                .thenReturn(new SupabaseUser("id-ana", "ana.silva@nexioo.com.br", "Ana Silva", "fake-token-ana"));
+                .thenReturn(new SupabaseUser(UID_ANA.toString(), "ana.silva@nexioo.com.br", "Ana Silva", "fake-token-ana"));
         when(supabaseAuthService.autenticar("joao@empresa.com", "123456"))
-                .thenReturn(new SupabaseUser("id-joao", "joao@empresa.com", "João", "fake-token-joao"));
+                .thenReturn(new SupabaseUser(UID_JOAO.toString(), "joao@empresa.com", "João", "fake-token-joao"));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
     @DisplayName("Validação dos 20 passos do fluxo de Áreas, Projetos e Demandas")
     void testFluxoCompletoAreasProjetosDemandas() throws Exception {
         MockHttpSession session = new MockHttpSession();
+        org.springframework.mock.web.MockHttpServletRequest testRequest = new org.springframework.mock.web.MockHttpServletRequest();
+        testRequest.setSession(session);
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(new org.springframework.web.context.request.ServletRequestAttributes(testRequest));
+        userContext.inicializar(UID_ANA, "ana.silva@nexioo.com.br", "Ana Silva", "fake-token-ana");
 
         // 1. Fazer login como usuário "Ana Silva" (ana.silva@nexioo.com.br)
         mockMvc.perform(post("/login")
@@ -85,6 +101,7 @@ class FluxoCompletoAreasProjetosTest {
 
         // 3 e 4. Criar nova área de trabalho "Tecnologia e Inovação" via POST /areas
         mockMvc.perform(post("/areas")
+                        .with(withCsrf())
                         .session(session)
                         .header("X-Requested-With", "XMLHttpRequest")
                         .param("nome", "Tecnologia e Inovação"))
@@ -148,6 +165,7 @@ class FluxoCompletoAreasProjetosTest {
 
         // 16. Editar e renomear área de trabalho
         mockMvc.perform(post("/areas/" + area2.getId() + "/editar")
+                        .with(withCsrf())
                         .session(session)
                         .header("X-Requested-With", "XMLHttpRequest")
                         .param("nome", "Design UX & UI"))
@@ -157,6 +175,7 @@ class FluxoCompletoAreasProjetosTest {
 
         // Excluir área
         mockMvc.perform(post("/areas/" + area2.getId() + "/excluir")
+                        .with(withCsrf())
                         .session(session)
                         .header("X-Requested-With", "XMLHttpRequest"))
                 .andExpect(status().isOk());
@@ -167,10 +186,9 @@ class FluxoCompletoAreasProjetosTest {
                 .andExpect(content().string(not(containsString("Templates"))))
                 .andExpect(content().string(not(containsString("<span>Início</span>"))));
 
-        // 18 e 19. Fazer logout e confirmar retorno para /login
-        mockMvc.perform(get("/logout").session(session))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login"));
+        // 18 e 19. Fazer logout via POST com CSRF e confirmar sucesso
+        mockMvc.perform(post("/logout").with(withCsrf()).session(session))
+                .andExpect(status().isOk());
 
         // Confirmar que rotas protegidas sem sessão voltam para /login
         mockMvc.perform(get("/projetos"))

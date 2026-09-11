@@ -16,7 +16,6 @@ import javax.validation.Valid;
  * Controller responsável pelo gerenciamento de colunas/listas.
  */
 @Controller
-@org.springframework.web.bind.annotation.CrossOrigin(origins = "*")
 @RequestMapping("/colunas")
 public class ColunaController {
 
@@ -53,13 +52,15 @@ public class ColunaController {
 
             redirectAttributes.addFlashAttribute("mensagemSucesso",
                     "Lista \"" + novaColuna.getDescricao() + "\" criada com sucesso.");
-            return "redirect:/quadro?novaColunaId=" + novaColuna.getId() + "#coluna-" + novaColuna.getId().toLowerCase();
+            String projParam = form.getProjetoId() != null ? "projetoId=" + form.getProjetoId() + "&" : "";
+            return "redirect:/quadro?" + projParam + "novaColunaId=" + novaColuna.getId() + "#coluna-" + novaColuna.getId().toLowerCase();
         } catch (IllegalArgumentException e) {
             if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
                 return "fragments/coluna :: coluna-vazio";
             }
             redirectAttributes.addFlashAttribute("mensagemErro", e.getMessage());
-            return "redirect:/quadro";
+            String projParam = form.getProjetoId() != null ? "?projetoId=" + form.getProjetoId() : "";
+            return "redirect:/quadro" + projParam;
         }
     }
 
@@ -67,14 +68,15 @@ public class ColunaController {
     @PostMapping("/{id}/excluir")
     public String excluir(
             @org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) java.util.UUID projetoId,
             @org.springframework.web.bind.annotation.RequestHeader(value = "X-Requested-With", required = false) String requestedWith,
             RedirectAttributes redirectAttributes) {
-        colunaService.excluir(id);
+        colunaService.excluir(id, projetoId);
         if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
             return "fragments/cartao :: cartao-vazio";
         }
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Lista excluída com sucesso.");
-        return "redirect:/quadro";
+        return "redirect:/quadro" + (projetoId != null ? "?projetoId=" + projetoId : "");
     }
 
 }

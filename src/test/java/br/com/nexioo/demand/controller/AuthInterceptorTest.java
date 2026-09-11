@@ -43,6 +43,12 @@ class AuthInterceptorTest {
     @MockBean
     private br.com.nexioo.demand.service.SupabaseAuthService supabaseAuthService;
 
+    @MockBean
+    private br.com.nexioo.demand.config.UserContext userContext;
+
+    @MockBean
+    private br.com.nexioo.demand.repository.QuadroRecenteRepository quadroRecenteRepository;
+
 
 
     @Test

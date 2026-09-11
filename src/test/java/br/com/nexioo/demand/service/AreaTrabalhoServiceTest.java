@@ -11,16 +11,37 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import br.com.nexioo.demand.config.UserContext;
+
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
+
+@ExtendWith(MockitoExtension.class)
 @DisplayName("AreaTrabalhoService — Regras de negócio de Áreas de Trabalho")
 class AreaTrabalhoServiceTest {
 
+    @Mock
+    private UserContext userContext;
+
     private AreaTrabalhoService service;
     private AreaTrabalhoRepository repository;
+    private static final UUID USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     @BeforeEach
     void setUp() {
+        lenient().when(userContext.getUsuarioId()).thenReturn(USER_ID);
+        lenient().when(userContext.requireUsuarioId()).thenReturn(USER_ID);
+        lenient().when(userContext.getEmail()).thenReturn("dev@empresa.com");
+        lenient().when(userContext.isAutenticado()).thenReturn(true);
+
         repository = new AreaTrabalhoRepositoryMemory();
-        service = new AreaTrabalhoServiceImpl(repository);
+        service = new AreaTrabalhoServiceImpl(repository, userContext);
     }
 
     @Test

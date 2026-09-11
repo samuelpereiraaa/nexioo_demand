@@ -8,19 +8,26 @@ import java.util.List;
  */
 public class Checklist {
 
-    private Long id;
+    private java.util.UUID id;
     private String titulo;
     private List<ChecklistItem> itens = new ArrayList<>();
 
-    public Checklist() {}
+    public Checklist() {
+        this.id = java.util.UUID.randomUUID();
+    }
 
-    public Checklist(Long id, String titulo) {
-        this.id = id;
+    public Checklist(java.util.UUID id, String titulo) {
+        this.id = id != null ? id : java.util.UUID.randomUUID();
         this.titulo = (titulo != null && !titulo.isBlank()) ? titulo.trim() : "Checklist";
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Checklist(Object id, String titulo) {
+        this(br.com.nexioo.demand.util.IdUtils.parseUuid(id), titulo);
+    }
+
+    public java.util.UUID getId() { return id; }
+    public void setId(java.util.UUID id) { this.id = id; }
+    public void setId(Object id) { this.id = br.com.nexioo.demand.util.IdUtils.parseUuid(id); }
 
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }

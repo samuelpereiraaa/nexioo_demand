@@ -4,10 +4,12 @@ import br.com.nexioo.demand.dto.DemandaForm;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
 import br.com.nexioo.demand.model.Prioridade;
+import br.com.nexioo.demand.util.IdUtils;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Casos de uso relacionados a demandas.
@@ -16,77 +18,210 @@ public interface DemandaService {
 
     Demanda criar(DemandaForm form);
 
-    Demanda buscarPorId(Long id);
+    Demanda buscarPorId(UUID id);
+
+    default Demanda buscarPorId(Object id) {
+        return buscarPorId(IdUtils.parseUuid(id));
+    }
 
     List<Demanda> listarTodas();
 
-    List<Demanda> listarPorProjeto(Long projetoId);
+    List<Demanda> listarPorProjeto(UUID projetoId);
+
+    default List<Demanda> listarPorProjeto(Object projetoId) {
+        return listarPorProjeto(IdUtils.parseUuid(projetoId));
+    }
 
     Map<Coluna, List<Demanda>> listarPorColuna();
 
-    Map<Coluna, List<Demanda>> listarPorColuna(Long projetoId);
+    Map<Coluna, List<Demanda>> listarPorColuna(UUID projetoId);
+
+    default Map<Coluna, List<Demanda>> listarPorColuna(Object projetoId) {
+        return listarPorColuna(IdUtils.parseUuid(projetoId));
+    }
 
     Map<Coluna, List<Demanda>> filtrar(String termo, Prioridade prioridade, String responsavel);
 
-    Map<Coluna, List<Demanda>> filtrar(Long projetoId, String termo, Prioridade prioridade, String responsavel);
+    Map<Coluna, List<Demanda>> filtrar(UUID projetoId, String termo, Prioridade prioridade, String responsavel);
 
+    default Map<Coluna, List<Demanda>> filtrar(Object projetoId, String termo, Prioridade prioridade, String responsavel) {
+        return filtrar(IdUtils.parseUuid(projetoId), termo, prioridade, responsavel);
+    }
 
-    Demanda editar(Long id, DemandaForm form);
+    Demanda editar(UUID id, DemandaForm form);
 
-    Demanda atualizarTitulo(Long id, String titulo);
+    default Demanda editar(Object id, DemandaForm form) {
+        return editar(IdUtils.parseUuid(id), form);
+    }
 
-    Demanda atualizarDescricao(Long id, String descricao);
+    Demanda atualizarTitulo(UUID id, String titulo);
 
-    Demanda alterarColuna(Long id, Coluna novaColuna);
+    default Demanda atualizarTitulo(Object id, String titulo) {
+        return atualizarTitulo(IdUtils.parseUuid(id), titulo);
+    }
 
-    Demanda mover(Long id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, Long projetoId, String usuario);
+    Demanda atualizarDescricao(UUID id, String descricao);
 
-    Demanda alternarConclusao(Long id);
+    default Demanda atualizarDescricao(Object id, String descricao) {
+        return atualizarDescricao(IdUtils.parseUuid(id), descricao);
+    }
 
-    Demanda adicionarComentario(Long id, String texto, String autor);
+    Demanda alterarColuna(UUID id, Coluna novaColuna);
 
-    Demanda adicionarEtiqueta(Long id, String nome, String corHex);
+    default Demanda alterarColuna(Object id, Coluna novaColuna) {
+        return alterarColuna(IdUtils.parseUuid(id), novaColuna);
+    }
 
-    Demanda removerEtiqueta(Long id, String etiquetaId);
+    Demanda mover(UUID id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, UUID projetoId, String usuario);
 
-    Demanda definirPrazo(Long id, LocalDate prazo);
+    default Demanda mover(Object id, String colunaOrigemId, String colunaDestinoId, Integer novaPosicao, Object projetoId, String usuario) {
+        return mover(IdUtils.parseUuid(id), colunaOrigemId, colunaDestinoId, novaPosicao, IdUtils.parseUuid(projetoId), usuario);
+    }
 
-    Demanda adicionarChecklist(Long id, String titulo);
+    Demanda alternarConclusao(UUID id);
 
-    Demanda renomearChecklist(Long id, Long checklistId, String titulo);
+    default Demanda alternarConclusao(Object id) {
+        return alternarConclusao(IdUtils.parseUuid(id));
+    }
 
-    Demanda removerChecklist(Long id, Long checklistId);
+    Demanda adicionarComentario(UUID id, String texto, String autor);
 
-    Demanda adicionarItemChecklist(Long id, Long checklistId, String texto);
+    default Demanda adicionarComentario(Object id, String texto, String autor) {
+        return adicionarComentario(IdUtils.parseUuid(id), texto, autor);
+    }
 
-    Demanda toggleItemChecklist(Long id, Long checklistId, Long itemId);
+    Demanda adicionarEtiqueta(UUID id, String nome, String corHex);
 
-    Demanda atualizarItemChecklist(Long id, Long checklistId, Long itemId, String texto);
+    default Demanda adicionarEtiqueta(Object id, String nome, String corHex) {
+        return adicionarEtiqueta(IdUtils.parseUuid(id), nome, corHex);
+    }
 
-    Demanda removerItemChecklist(Long id, Long checklistId, Long itemId);
+    Demanda removerEtiqueta(UUID id, String etiquetaId);
 
-    Demanda adicionarMembro(Long id, String membro);
+    default Demanda removerEtiqueta(Object id, String etiquetaId) {
+        return removerEtiqueta(IdUtils.parseUuid(id), etiquetaId);
+    }
 
-    Demanda removerMembro(Long id, String membro);
+    Demanda definirPrazo(UUID id, LocalDate prazo);
 
-    Demanda toggleAcompanhar(Long id);
+    default Demanda definirPrazo(Object id, LocalDate prazo) {
+        return definirPrazo(IdUtils.parseUuid(id), prazo);
+    }
 
-    Demanda adicionarImagem(Long id, String imagemUrl);
+    Demanda adicionarChecklist(UUID id, String titulo);
 
-    Demanda removerImagem(Long id);
+    default Demanda adicionarChecklist(Object id, String titulo) {
+        return adicionarChecklist(IdUtils.parseUuid(id), titulo);
+    }
 
-    Demanda removerImagemEspecifica(Long id, String imagemUrl);
+    Demanda renomearChecklist(UUID id, UUID checklistId, String titulo);
 
-    Demanda adicionarAnexo(Long id, String nome, String url);
+    default Demanda renomearChecklist(Object id, Object checklistId, String titulo) {
+        return renomearChecklist(IdUtils.parseUuid(id), IdUtils.parseUuid(checklistId), titulo);
+    }
 
-    Demanda removerAnexo(Long id, String anexoId);
+    Demanda removerChecklist(UUID id, UUID checklistId);
 
-    Demanda definirCapaAnexo(Long id, String anexoId, boolean capa);
+    default Demanda removerChecklist(Object id, Object checklistId) {
+        return removerChecklist(IdUtils.parseUuid(id), IdUtils.parseUuid(checklistId));
+    }
 
-    Demanda renomearAnexo(Long id, String anexoId, String novoNome);
+    Demanda adicionarItemChecklist(UUID id, UUID checklistId, String texto);
 
-    Demanda comentarAnexo(Long id, String anexoId, String texto, String autor);
+    default Demanda adicionarItemChecklist(Object id, Object checklistId, String texto) {
+        return adicionarItemChecklist(IdUtils.parseUuid(id), IdUtils.parseUuid(checklistId), texto);
+    }
 
-    void excluir(Long id);
+    Demanda toggleItemChecklist(UUID id, UUID checklistId, UUID itemId);
+
+    default Demanda toggleItemChecklist(Object id, Object checklistId, Object itemId) {
+        return toggleItemChecklist(IdUtils.parseUuid(id), IdUtils.parseUuid(checklistId), IdUtils.parseUuid(itemId));
+    }
+
+    Demanda atualizarItemChecklist(UUID id, UUID checklistId, UUID itemId, String texto);
+
+    default Demanda atualizarItemChecklist(Object id, Object checklistId, Object itemId, String texto) {
+        return atualizarItemChecklist(IdUtils.parseUuid(id), IdUtils.parseUuid(checklistId), IdUtils.parseUuid(itemId), texto);
+    }
+
+    Demanda removerItemChecklist(UUID id, UUID checklistId, UUID itemId);
+
+    default Demanda removerItemChecklist(Object id, Object checklistId, Object itemId) {
+        return removerItemChecklist(IdUtils.parseUuid(id), IdUtils.parseUuid(checklistId), IdUtils.parseUuid(itemId));
+    }
+
+    Demanda adicionarMembro(UUID id, String membro);
+
+    default Demanda adicionarMembro(Object id, String membro) {
+        return adicionarMembro(IdUtils.parseUuid(id), membro);
+    }
+
+    Demanda removerMembro(UUID id, String membro);
+
+    default Demanda removerMembro(Object id, String membro) {
+        return removerMembro(IdUtils.parseUuid(id), membro);
+    }
+
+    Demanda toggleAcompanhar(UUID id);
+
+    default Demanda toggleAcompanhar(Object id) {
+        return toggleAcompanhar(IdUtils.parseUuid(id));
+    }
+
+    Demanda adicionarImagem(UUID id, String imagemUrl);
+
+    default Demanda adicionarImagem(Object id, String imagemUrl) {
+        return adicionarImagem(IdUtils.parseUuid(id), imagemUrl);
+    }
+
+    Demanda removerImagem(UUID id);
+
+    default Demanda removerImagem(Object id) {
+        return removerImagem(IdUtils.parseUuid(id));
+    }
+
+    Demanda removerImagemEspecifica(UUID id, String imagemUrl);
+
+    default Demanda removerImagemEspecifica(Object id, String imagemUrl) {
+        return removerImagemEspecifica(IdUtils.parseUuid(id), imagemUrl);
+    }
+
+    Demanda adicionarAnexo(UUID id, String nome, String url);
+
+    default Demanda adicionarAnexo(Object id, String nome, String url) {
+        return adicionarAnexo(IdUtils.parseUuid(id), nome, url);
+    }
+
+    Demanda removerAnexo(UUID id, String anexoId);
+
+    default Demanda removerAnexo(Object id, String anexoId) {
+        return removerAnexo(IdUtils.parseUuid(id), anexoId);
+    }
+
+    Demanda definirCapaAnexo(UUID id, String anexoId, boolean capa);
+
+    default Demanda definirCapaAnexo(Object id, String anexoId, boolean capa) {
+        return definirCapaAnexo(IdUtils.parseUuid(id), anexoId, capa);
+    }
+
+    Demanda renomearAnexo(UUID id, String anexoId, String novoNome);
+
+    default Demanda renomearAnexo(Object id, String anexoId, String novoNome) {
+        return renomearAnexo(IdUtils.parseUuid(id), anexoId, novoNome);
+    }
+
+    Demanda comentarAnexo(UUID id, String anexoId, String texto, String autor);
+
+    default Demanda comentarAnexo(Object id, String anexoId, String texto, String autor) {
+        return comentarAnexo(IdUtils.parseUuid(id), anexoId, texto, autor);
+    }
+
+    void excluir(UUID id);
+
+    default void excluir(Object id) {
+        if (id != null) {
+            excluir(IdUtils.parseUuid(id));
+        }
+    }
 }
 

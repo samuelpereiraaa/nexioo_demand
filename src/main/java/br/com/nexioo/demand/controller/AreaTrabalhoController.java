@@ -1,6 +1,6 @@
 package br.com.nexioo.demand.controller;
 
-import br.com.nexioo.demand.config.AuthInterceptor;
+import br.com.nexioo.demand.config.UserContext;
 import br.com.nexioo.demand.model.AreaTrabalho;
 import br.com.nexioo.demand.service.AreaTrabalhoService;
 import org.springframework.http.ResponseEntity;
@@ -9,43 +9,41 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 
 @Controller
-@CrossOrigin(origins = "*")
 @RequestMapping("/areas")
 public class AreaTrabalhoController {
 
     private final AreaTrabalhoService areaTrabalhoService;
+    private final UserContext userContext;
 
-    public AreaTrabalhoController(AreaTrabalhoService areaTrabalhoService) {
+    public AreaTrabalhoController(AreaTrabalhoService areaTrabalhoService, UserContext userContext) {
         this.areaTrabalhoService = areaTrabalhoService;
+        this.userContext = userContext;
     }
 
-    private String obterUsuarioLogado(HttpSession session) {
-        if (session != null && session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO) != null) {
-            return (String) session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO);
+    private String getUsuarioAtivo() {
+        if (userContext != null && userContext.isAutenticado()) {
+            return userContext.getEmail();
         }
-        return "samuel@nexioo.com.br";
+        return "";
     }
 
     @GetMapping
     @ResponseBody
-    public List<AreaTrabalho> listar(HttpSession session) {
-        String usuario = obterUsuarioLogado(session);
-        return areaTrabalhoService.listarPorUsuario(usuario);
+    public List<AreaTrabalho> listar() {
+        return areaTrabalhoService.listarPorUsuario(getUsuarioAtivo());
     }
 
     @PostMapping
     public Object criar(
             @RequestParam String nome,
             HttpServletRequest request,
-            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
-        String usuario = obterUsuarioLogado(session);
+        String usuario = getUsuarioAtivo();
         boolean isAjax = "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"));
 
         try {
@@ -66,13 +64,12 @@ public class AreaTrabalhoController {
 
     @PostMapping("/{id}/editar")
     public Object editar(
-            @PathVariable Long id,
+            @PathVariable java.util.UUID id,
             @RequestParam String nome,
             HttpServletRequest request,
-            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
-        String usuario = obterUsuarioLogado(session);
+        String usuario = getUsuarioAtivo();
         boolean isAjax = "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"));
 
         try {
@@ -93,12 +90,11 @@ public class AreaTrabalhoController {
 
     @PostMapping("/{id}/excluir")
     public Object excluir(
-            @PathVariable Long id,
+            @PathVariable java.util.UUID id,
             HttpServletRequest request,
-            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
-        String usuario = obterUsuarioLogado(session);
+        String usuario = getUsuarioAtivo();
         boolean isAjax = "XMLHttpRequest".equalsIgnoreCase(request.getHeader("X-Requested-With"));
 
         areaTrabalhoService.excluir(id, usuario);

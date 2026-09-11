@@ -17,6 +17,7 @@ COPY --from=build \
     /app/app.jar
 
 ENV PORT=80
+ENV SPRING_PROFILES_ACTIVE=prod
 
 EXPOSE 80
 

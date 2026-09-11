@@ -2,6 +2,7 @@ package br.com.nexioo.demand.controller;
 
 import br.com.nexioo.demand.exception.DemandaNaoEncontradaException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -32,6 +33,28 @@ public class GlobalExceptionHandler {
 
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         model.addAttribute("titulo", "Demanda não encontrada");
+        model.addAttribute("mensagem", ex.getMessage());
+        return "erro/nao-encontrado";
+    }
+
+    @ExceptionHandler(SecurityException.class)
+    public Object erroSeguranca(SecurityException ex, HttpServletRequest request, HttpServletResponse response, Model model) {
+        log.warn("Acesso negado/segurança: {}", ex.getMessage());
+        if (isAjax(request)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"status\":\"erro\",\"mensagem\":\"" + ex.getMessage() + "\"}");
+        }
+        return "redirect:/login";
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public Object metodoNaoSuportado(org.springframework.web.HttpRequestMethodNotSupportedException ex, HttpServletRequest request, HttpServletResponse response, Model model) {
+        if (isAjax(request)) {
+            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(ex.getMessage());
+        }
+        response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+        model.addAttribute("titulo", "Método HTTP não permitido");
         model.addAttribute("mensagem", ex.getMessage());
         return "erro/nao-encontrado";
     }

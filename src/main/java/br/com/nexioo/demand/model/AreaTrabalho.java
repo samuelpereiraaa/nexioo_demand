@@ -1,14 +1,18 @@
 package br.com.nexioo.demand.model;
 
+import br.com.nexioo.demand.util.IdUtils;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Entidade que representa uma Área de Trabalho (Workspace) no sistema.
  */
 public class AreaTrabalho {
 
-    private Long id;
+    private UUID id;
+    private UUID usuarioId;
     private String nome;
     private String inicial;
     private String usuarioProprietario;
@@ -18,8 +22,21 @@ public class AreaTrabalho {
         this.criadoEm = LocalDateTime.now();
     }
 
-    public AreaTrabalho(Long id, String nome, String usuarioProprietario) {
-        this.id = id;
+    public AreaTrabalho(UUID id, String nome, String usuarioProprietario) {
+        this.id = id != null ? id : UUID.randomUUID();
+        this.nome = nome;
+        this.inicial = gerarInicial(nome);
+        this.usuarioProprietario = usuarioProprietario;
+        this.criadoEm = LocalDateTime.now();
+    }
+
+    public AreaTrabalho(Object id, String nome, String usuarioProprietario) {
+        this(IdUtils.parseUuid(id), nome, usuarioProprietario);
+    }
+
+    public AreaTrabalho(UUID id, String nome, UUID usuarioId, String usuarioProprietario) {
+        this.id = id != null ? id : UUID.randomUUID();
+        this.usuarioId = usuarioId;
         this.nome = nome;
         this.inicial = gerarInicial(nome);
         this.usuarioProprietario = usuarioProprietario;
@@ -34,12 +51,32 @@ public class AreaTrabalho {
         return limpo.substring(0, 1).toUpperCase();
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
+    }
+
+    public void setId(Object id) {
+        this.id = IdUtils.parseUuid(id);
+    }
+
+    public UUID getUuid() {
+        return id;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.id = uuid;
+    }
+
+    public UUID getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(UUID usuarioId) {
+        this.usuarioId = usuarioId;
     }
 
     public String getNome() {

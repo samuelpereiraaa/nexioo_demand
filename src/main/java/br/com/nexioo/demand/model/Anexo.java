@@ -11,6 +11,8 @@ public class Anexo {
     private String id;
     private String nome;
     private String url;
+    private String storagePath;
+    private java.util.UUID usuarioId;
     private LocalDateTime dataCriacao;
     private boolean capa;
 
@@ -58,6 +60,22 @@ public class Anexo {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getStoragePath() {
+        return storagePath;
+    }
+
+    public void setStoragePath(String storagePath) {
+        this.storagePath = storagePath;
+    }
+
+    public java.util.UUID getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(java.util.UUID usuarioId) {
+        this.usuarioId = usuarioId;
     }
 
     public LocalDateTime getDataCriacao() {

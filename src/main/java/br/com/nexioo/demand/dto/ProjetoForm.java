@@ -17,7 +17,22 @@ public class ProjetoForm {
 
     private String gradiente = "linear-gradient(135deg, #a855f7, #ec4899)";
 
-    private Long areaTrabalhoId;
+    private java.util.UUID areaTrabalhoId;
+
+    public ProjetoForm() {
+    }
+
+    public ProjetoForm(String nome, String descricao) {
+        this.nome = nome;
+        this.descricao = descricao;
+    }
+
+    public ProjetoForm(String nome, String descricao, String gradiente, java.util.UUID areaTrabalhoId) {
+        this.nome = nome;
+        this.descricao = descricao;
+        if (gradiente != null) this.gradiente = gradiente;
+        this.areaTrabalhoId = areaTrabalhoId;
+    }
 
     public String getNome() {
         return nome;
@@ -43,12 +58,16 @@ public class ProjetoForm {
         this.gradiente = gradiente;
     }
 
-    public Long getAreaTrabalhoId() {
+    public java.util.UUID getAreaTrabalhoId() {
         return areaTrabalhoId;
     }
 
-    public void setAreaTrabalhoId(Long areaTrabalhoId) {
+    public void setAreaTrabalhoId(java.util.UUID areaTrabalhoId) {
         this.areaTrabalhoId = areaTrabalhoId;
+    }
+
+    public void setAreaTrabalhoId(Object areaTrabalhoId) {
+        this.areaTrabalhoId = br.com.nexioo.demand.util.IdUtils.parseUuid(areaTrabalhoId);
     }
 }
 

@@ -10,7 +10,6 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,6 +17,10 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Serviço de autenticação oficial integrado ao Supabase GoTrue Auth (/auth/v1/).
+ * Não utiliza chaves ou URLs sensíveis hardcoded no código-fonte.
+ */
 @Service
 public class SupabaseAuthService {
 
@@ -29,12 +32,13 @@ public class SupabaseAuthService {
     private final ObjectMapper objectMapper;
 
     public SupabaseAuthService(
-            @Value("${supabase.url:https://bbxeajlvzajcjkdzhmcz.supabase.co}") String supabaseUrl,
-            @Value("${supabase.anon-key:sb_publishable_Ekx7QfVbyHtXOjFEtPFGAg_v5KLHPQA}") String supabaseAnonKey,
+            @Value("${supabase.url:}") String supabaseUrl,
+            @Value("${supabase.anon-key:}") String supabaseAnonKey,
             RestTemplateBuilder restTemplateBuilder,
             ObjectMapper objectMapper) {
-        this.supabaseUrl = supabaseUrl.endsWith("/") ? supabaseUrl.substring(0, supabaseUrl.length() - 1) : supabaseUrl;
-        this.supabaseAnonKey = supabaseAnonKey;
+        String url = (supabaseUrl != null) ? supabaseUrl.trim() : "";
+        this.supabaseUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        this.supabaseAnonKey = (supabaseAnonKey != null) ? supabaseAnonKey.trim() : "";
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(10))
                 .setReadTimeout(Duration.ofSeconds(10))
@@ -42,7 +46,14 @@ public class SupabaseAuthService {
         this.objectMapper = objectMapper;
     }
 
+    private void validarConfiguracao() {
+        if (supabaseUrl.isBlank() || supabaseAnonKey.isBlank()) {
+            throw new IllegalStateException("Configuração de autenticação incompleta: SUPABASE_URL e SUPABASE_ANON_KEY são obrigatórios.");
+        }
+    }
+
     public SupabaseUser autenticar(String email, String password) {
+        validarConfiguracao();
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
             throw new IllegalArgumentException("E-mail e senha são obrigatórios.");
         }
@@ -69,15 +80,16 @@ public class SupabaseAuthService {
             log.warn("Falha na autenticação via Supabase: status={}", e.getRawStatusCode());
             throw new IllegalArgumentException("E-mail ou senha inválidos.");
         } catch (ResourceAccessException e) {
-            log.error("Falha de conexão com o serviço Supabase", e);
+            log.error("Falha de conexão com o servidor de autenticação Supabase");
             throw new IllegalArgumentException("Não foi possível conectar ao servidor de autenticação.");
         } catch (Exception e) {
-            log.error("Erro inesperado durante autenticação", e);
+            log.error("Erro inesperado durante autenticação: {}", e.getMessage());
             throw new IllegalArgumentException("E-mail ou senha inválidos.");
         }
     }
 
     public SupabaseUser validarToken(String token) {
+        validarConfiguracao();
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("Token de autenticação não informado.");
         }
@@ -100,15 +112,16 @@ public class SupabaseAuthService {
             log.warn("Token inválido ou expirado no Supabase: status={}", e.getRawStatusCode());
             throw new IllegalArgumentException("Sessão inválida ou expirada.");
         } catch (ResourceAccessException e) {
-            log.error("Falha de conexão ao validar token no Supabase", e);
+            log.error("Falha de conexão ao validar token no Supabase");
             throw new IllegalArgumentException("Não foi possível conectar ao servidor de autenticação.");
         } catch (Exception e) {
-            log.error("Erro ao validar token", e);
+            log.error("Erro ao validar token: {}", e.getMessage());
             throw new IllegalArgumentException("Sessão inválida ou expirada.");
         }
     }
 
     public SupabaseUser cadastrar(String email, String password, String nome) {
+        validarConfiguracao();
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
             throw new IllegalArgumentException("E-mail e senha são obrigatórios.");
         }
@@ -143,11 +156,55 @@ public class SupabaseAuthService {
             }
             throw new IllegalArgumentException("Erro ao criar conta.");
         } catch (ResourceAccessException e) {
-            log.error("Falha de conexão ao cadastrar usuário no Supabase", e);
+            log.error("Falha de conexão ao cadastrar usuário no Supabase");
             throw new IllegalArgumentException("Não foi possível conectar ao servidor de autenticação.");
         } catch (Exception e) {
-            log.error("Erro inesperado ao cadastrar usuário", e);
+            log.error("Erro inesperado ao cadastrar usuário: {}", e.getMessage());
             throw new IllegalArgumentException("Erro ao criar conta.");
+        }
+    }
+
+    public SupabaseUser renovarToken(String refreshToken) {
+        validarConfiguracao();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh token não informado.");
+        }
+
+        String url = supabaseUrl + "/auth/v1/token?grant_type=refresh_token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("apikey", supabaseAnonKey);
+
+        Map<String, String> body = new HashMap<>();
+        body.put("refresh_token", refreshToken.trim());
+
+        HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return parseUserResponse(response.getBody(), null);
+            }
+            throw new IllegalArgumentException("Sessão expirada.");
+        } catch (Exception e) {
+            log.warn("Falha ao renovar token no Supabase: {}", e.getMessage());
+            throw new IllegalArgumentException("Sessão expirada.");
+        }
+    }
+
+    public void revogarSessao(String accessToken) {
+        if (supabaseUrl.isBlank() || supabaseAnonKey.isBlank() || accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        String url = supabaseUrl + "/auth/v1/logout";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("apikey", supabaseAnonKey);
+        headers.setBearerAuth(accessToken.trim());
+        try {
+            restTemplate.postForEntity(url, new HttpEntity<>(headers), String.class);
+        } catch (Exception e) {
+            log.debug("Erro ao revogar sessão no Supabase Auth: {}", e.getMessage());
         }
     }
 
@@ -157,6 +214,14 @@ public class SupabaseAuthService {
             String accessToken = fallbackToken;
             if (root.has("access_token") && !root.get("access_token").isNull()) {
                 accessToken = root.get("access_token").asText();
+            }
+            String refreshToken = null;
+            if (root.has("refresh_token") && !root.get("refresh_token").isNull()) {
+                refreshToken = root.get("refresh_token").asText();
+            }
+            Long expiresIn = null;
+            if (root.has("expires_in") && !root.get("expires_in").isNull()) {
+                expiresIn = root.get("expires_in").asLong();
             }
 
             JsonNode userNode = root.has("user") ? root.get("user") : root;
@@ -179,9 +244,9 @@ public class SupabaseAuthService {
                 nome = capitalizeWords(prefix.replace(".", " ").replace("_", " ").replace("-", " "));
             }
 
-            return new SupabaseUser(id, email, nome, accessToken);
+            return new SupabaseUser(id, email, nome, accessToken, refreshToken, expiresIn);
         } catch (Exception e) {
-            log.error("Erro ao fazer parse da resposta do Supabase", e);
+            log.error("Erro ao fazer parse da resposta do Supabase: {}", e.getMessage());
             throw new IllegalArgumentException("Erro ao processar dados da autenticação.");
         }
     }

@@ -1,6 +1,6 @@
 package br.com.nexioo.demand.controller;
 
-import br.com.nexioo.demand.config.AuthInterceptor;
+import br.com.nexioo.demand.config.UserContext;
 import br.com.nexioo.demand.dto.ProjetoForm;
 import br.com.nexioo.demand.model.AreaTrabalho;
 import br.com.nexioo.demand.model.Projeto;
@@ -12,7 +12,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.util.List;
 
@@ -21,42 +20,37 @@ import java.util.List;
  * organizados por Área de Trabalho.
  */
 @Controller
-@CrossOrigin(origins = "*")
 @RequestMapping("/projetos")
 public class ProjetoController {
 
     private final ProjetoService projetoService;
     private final AreaTrabalhoService areaTrabalhoService;
+    private final UserContext userContext;
 
-    public ProjetoController(ProjetoService projetoService, AreaTrabalhoService areaTrabalhoService) {
+    public ProjetoController(ProjetoService projetoService,
+                             AreaTrabalhoService areaTrabalhoService,
+                             UserContext userContext) {
         this.projetoService = projetoService;
         this.areaTrabalhoService = areaTrabalhoService;
-    }
-
-    private String obterUsuarioLogado(HttpSession session) {
-        if (session != null && session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO) != null) {
-            return (String) session.getAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO);
-        }
-        return "samuel@nexioo.com.br";
+        this.userContext = userContext;
     }
 
     @GetMapping
     public String index(
-            @RequestParam(required = false) Long areaId,
-            HttpSession session,
+            @RequestParam(required = false) java.util.UUID areaId,
             Model model) {
 
-        String usuario = obterUsuarioLogado(session);
-        List<AreaTrabalho> areas = areaTrabalhoService.listarPorUsuario(usuario);
+        String email = (userContext != null && userContext.isAutenticado()) ? userContext.getEmail() : "";
+        List<AreaTrabalho> areas = areaTrabalhoService.listarPorUsuario(email);
 
         AreaTrabalho areaAtual;
         if (areaId != null) {
             areaAtual = areas.stream()
                     .filter(a -> a.getId().equals(areaId))
                     .findFirst()
-                    .orElse(!areas.isEmpty() ? areas.get(0) : areaTrabalhoService.obterOuCriarPadrao(usuario));
+                    .orElse(!areas.isEmpty() ? areas.get(0) : areaTrabalhoService.obterOuCriarPadrao(email));
         } else {
-            areaAtual = !areas.isEmpty() ? areas.get(0) : areaTrabalhoService.obterOuCriarPadrao(usuario);
+            areaAtual = !areas.isEmpty() ? areas.get(0) : areaTrabalhoService.obterOuCriarPadrao(email);
         }
 
         List<Projeto> projetosDaArea = projetoService.listarPorArea(areaAtual.getId());
@@ -100,7 +94,7 @@ public class ProjetoController {
     }
 
     @PostMapping("/{id}/excluir")
-    public String excluir(@PathVariable Long id, @RequestParam(required = false) Long areaId, RedirectAttributes redirectAttributes) {
+    public String excluir(@PathVariable java.util.UUID id, @RequestParam(required = false) java.util.UUID areaId, RedirectAttributes redirectAttributes) {
         projetoService.excluir(id);
         redirectAttributes.addFlashAttribute("mensagemSucesso", "Projeto excluído com sucesso.");
         return "redirect:/projetos" + (areaId != null ? "?areaId=" + areaId : "");

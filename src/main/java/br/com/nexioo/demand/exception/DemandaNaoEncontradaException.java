@@ -6,7 +6,7 @@ package br.com.nexioo.demand.exception;
  */
 public class DemandaNaoEncontradaException extends RuntimeException {
 
-    public DemandaNaoEncontradaException(Long id) {
+    public DemandaNaoEncontradaException(Object id) {
         super("Demanda com ID " + id + " não encontrada.");
     }
 }

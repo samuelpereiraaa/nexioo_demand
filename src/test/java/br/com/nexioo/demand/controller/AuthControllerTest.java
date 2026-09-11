@@ -114,30 +114,31 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("GET /logout deve invalidar sessão e remover cookie JSESSIONID")
+    @DisplayName("GET /logout não deve ser permitido (deve rejeitar métodos não POST)")
     void logoutGet() throws Exception {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO, "nexioo@gmail.com");
 
-        MvcResult result = mockMvc.perform(get("/logout").session(session))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login"))
-                .andExpect(header().string("Cache-Control", "no-cache, no-store, must-revalidate"))
-                .andReturn();
-
-        assertTrue(session.isInvalid());
-        Cookie cookie = result.getResponse().getCookie("JSESSIONID");
-        assertNotNull(cookie);
-        assertEquals(0, cookie.getMaxAge());
+        mockMvc.perform(get("/logout").session(session))
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
-    @DisplayName("POST /logout deve retornar 200 e limpar cookie")
+    @DisplayName("POST /logout deve exigir token CSRF e quando fornecido limpar cookies e invalidar sessão")
     void logoutPost() throws Exception {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(AuthInterceptor.CHAVE_USUARIO_LOGADO, "nexioo@gmail.com");
+        String csrfToken = "csrf-test-token-123";
+        session.setAttribute(br.com.nexioo.demand.config.CsrfTokenService.CSRF_ATTR_NAME, csrfToken);
 
-        MvcResult result = mockMvc.perform(post("/logout").session(session))
+        // 1. Sem token CSRF deve ser bloqueado com 403
+        mockMvc.perform(post("/logout").session(session))
+                .andExpect(status().isForbidden());
+
+        // 2. Com token CSRF válido deve ter sucesso
+        MvcResult result = mockMvc.perform(post("/logout")
+                        .session(session)
+                        .header(br.com.nexioo.demand.config.CsrfTokenService.CSRF_HEADER_NAME, csrfToken))
                 .andExpect(status().isOk())
                 .andReturn();
 

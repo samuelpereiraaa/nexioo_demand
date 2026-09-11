@@ -1,14 +1,21 @@
 package br.com.nexioo.demand.model;
 
+import br.com.nexioo.demand.util.IdUtils;
+
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Representa as colunas/listas do quadro Kanban.
- * Permite suporte a listas dinâmicas mantendo compatibilidade com as colunas padrão.
+ * Utiliza UUID como chave técnica primária e código único por projeto.
  */
 public class Coluna {
 
     private String id;
+    private UUID uuid;
+    private UUID projetoId;
+    private UUID usuarioId;
+    private String codigo;
     private String descricao;
     private int ordem;
 
@@ -23,16 +30,75 @@ public class Coluna {
 
     public Coluna(String id, String descricao, int ordem) {
         this.id = id;
+        this.codigo = id;
+        this.descricao = descricao;
+        this.ordem = ordem;
+        this.uuid = IdUtils.parseUuid(id);
+    }
+
+    public Coluna(UUID uuid, UUID projetoId, UUID usuarioId, String codigo, String descricao, int ordem) {
+        this.uuid = uuid;
+        this.id = (uuid != null) ? uuid.toString() : codigo;
+        this.projetoId = projetoId;
+        this.usuarioId = usuarioId;
+        this.codigo = codigo;
         this.descricao = descricao;
         this.ordem = ordem;
     }
 
     public String getId() {
+        if (id == null && uuid != null) {
+            id = uuid.toString();
+        }
         return id;
     }
 
     public void setId(String id) {
         this.id = id;
+        if (this.codigo == null) {
+            this.codigo = id;
+        }
+        if (this.uuid == null) {
+            this.uuid = IdUtils.parseUuid(id);
+        }
+    }
+
+    public UUID getUuid() {
+        if (uuid == null && id != null) {
+            uuid = IdUtils.parseUuid(id);
+        }
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+        if (uuid != null) {
+            this.id = uuid.toString();
+        }
+    }
+
+    public UUID getProjetoId() {
+        return projetoId;
+    }
+
+    public void setProjetoId(UUID projetoId) {
+        this.projetoId = projetoId;
+    }
+
+    public UUID getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(UUID usuarioId) {
+        this.usuarioId = usuarioId;
+    }
+
+    public String getCodigo() {
+        return (codigo != null && !codigo.isBlank()) ? codigo : id;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
 
     public String getDescricao() {
@@ -41,6 +107,14 @@ public class Coluna {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getNome() {
+        return descricao;
+    }
+
+    public void setNome(String nome) {
+        this.descricao = nome;
     }
 
     public int getOrdem() {
@@ -52,10 +126,10 @@ public class Coluna {
     }
 
     /**
-     * Retorna o ID para manter compatibilidade com chamadas ${coluna.name()} nos templates Thymeleaf.
+     * Retorna o ID/código para manter compatibilidade com chamadas ${coluna.name()} nos templates Thymeleaf.
      */
     public String name() {
-        return id;
+        return (id != null) ? id : (codigo != null ? codigo : "COLUNA");
     }
 
     @Override
@@ -63,11 +137,17 @@ public class Coluna {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Coluna coluna = (Coluna) o;
-        return Objects.equals(id, coluna.id);
+        if (uuid != null && coluna.uuid != null && Objects.equals(uuid, coluna.uuid)) {
+            return true;
+        }
+        String c1 = (codigo != null && !codigo.isBlank()) ? codigo.trim().toUpperCase() : (id != null ? id.trim().toUpperCase() : "");
+        String c2 = (coluna.codigo != null && !coluna.codigo.isBlank()) ? coluna.codigo.trim().toUpperCase() : (coluna.id != null ? coluna.id.trim().toUpperCase() : "");
+        return !c1.isEmpty() && c1.equals(c2);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        String c = (codigo != null && !codigo.isBlank()) ? codigo.trim().toUpperCase() : (id != null ? id.trim().toUpperCase() : "");
+        return Objects.hash(c);
     }
 }

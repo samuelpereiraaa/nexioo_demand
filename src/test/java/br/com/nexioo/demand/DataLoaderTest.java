@@ -1,58 +1,51 @@
 package br.com.nexioo.demand;
 
+import br.com.nexioo.demand.model.AreaTrabalho;
 import br.com.nexioo.demand.model.Coluna;
 import br.com.nexioo.demand.model.Demanda;
+import br.com.nexioo.demand.model.Projeto;
+import br.com.nexioo.demand.repository.AreaTrabalhoRepository;
 import br.com.nexioo.demand.repository.ColunaRepository;
 import br.com.nexioo.demand.repository.DemandaRepository;
 import br.com.nexioo.demand.repository.ProjetoRepository;
+import br.com.nexioo.demand.repository.memory.AreaTrabalhoRepositoryMemory;
 import br.com.nexioo.demand.repository.memory.ColunaRepositoryMemory;
 import br.com.nexioo.demand.repository.memory.DemandaRepositoryMemory;
 import br.com.nexioo.demand.repository.memory.ProjetoRepositoryMemory;
-import br.com.nexioo.demand.service.ColunaServiceImpl;
-import br.com.nexioo.demand.service.DemandaServiceImpl;
-import br.com.nexioo.demand.service.ProjetoServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("DataLoader — Inicialização da Demanda de Demonstração")
 class DataLoaderTest {
 
-    private DemandaServiceImpl demandaService;
-    private ColunaServiceImpl colunaService;
-    private ProjetoServiceImpl projetoService;
+    private DemandaRepository demandaRepo;
+    private ColunaRepository colunaRepo;
+    private ProjetoRepository projetoRepo;
+    private AreaTrabalhoRepository areaRepo;
     private DataLoader dataLoader;
 
     @BeforeEach
     void setUp() {
-        DemandaRepository demandaRepo = new DemandaRepositoryMemory();
-        ColunaRepository colunaRepo = new ColunaRepositoryMemory();
-        ProjetoRepository projetoRepo = new ProjetoRepositoryMemory();
+        demandaRepo = new DemandaRepositoryMemory();
+        colunaRepo = new ColunaRepositoryMemory();
+        projetoRepo = new ProjetoRepositoryMemory();
+        areaRepo = new AreaTrabalhoRepositoryMemory();
 
-        colunaRepo.salvar(new Coluna("A_FAZER", "A Fazer", 2));
-        colunaRepo.salvar(new Coluna("EM_ANDAMENTO", "Em Andamento", 3));
-        colunaRepo.salvar(new Coluna("CONCLUIDO", "Concluído", 4));
-
-        colunaService = new ColunaServiceImpl(colunaRepo);
-        demandaService = new DemandaServiceImpl(demandaRepo, colunaService);
-        projetoService = new ProjetoServiceImpl(projetoRepo);
-
-        dataLoader = new DataLoader(demandaService, colunaService, projetoService);
+        dataLoader = new DataLoader(demandaRepo, colunaRepo, projetoRepo, areaRepo);
     }
-
 
     @Test
     @DisplayName("Deve criar exatamente uma demanda de demonstração no DataLoader")
     void deveCriarExatamenteUmaDemandaDeDemonstracao() {
         dataLoader.run(new DefaultApplicationArguments(new String[0]));
 
-        List<Demanda> todas = demandaService.listarTodas();
+        List<Demanda> todas = demandaRepo.listarPorUsuario(DataLoader.DEMO_USER_ID);
         assertEquals(1, todas.size(), "Deve existir exatamente 1 demanda inicial.");
         assertEquals("teste", todas.get(0).getTitulo());
     }
@@ -63,7 +56,7 @@ class DataLoaderTest {
         dataLoader.run(new DefaultApplicationArguments(new String[0]));
         dataLoader.run(new DefaultApplicationArguments(new String[0]));
 
-        List<Demanda> todas = demandaService.listarTodas();
+        List<Demanda> todas = demandaRepo.listarPorUsuario(DataLoader.DEMO_USER_ID);
         assertEquals(1, todas.size(), "A reinicialização do DataLoader não pode duplicar demandas.");
     }
 
@@ -72,21 +65,15 @@ class DataLoaderTest {
     void contadoresPorListaDevemEstarCorretos() {
         dataLoader.run(new DefaultApplicationArguments(new String[0]));
 
-        Map<Coluna, List<Demanda>> porColuna = demandaService.listarPorColuna();
-        int totalComDemandas = 0;
-        int totalSemDemandas = 0;
+        List<Projeto> projetos = projetoRepo.listarPorUsuario(DataLoader.DEMO_USER_ID);
+        assertFalse(projetos.isEmpty());
+        Projeto proj = projetos.get(0);
 
-        for (Map.Entry<Coluna, List<Demanda>> entry : porColuna.entrySet()) {
-            if (!entry.getValue().isEmpty()) {
-                assertEquals(1, entry.getValue().size(), "A lista com demanda deve conter exatamente 1 item.");
-                totalComDemandas++;
-            } else {
-                assertEquals(0, entry.getValue().size(), "Lista sem demanda deve conter 0 itens.");
-                totalSemDemandas++;
-            }
-        }
+        List<Coluna> colunas = colunaRepo.listarPorProjetoEUsuario(proj.getId(), DataLoader.DEMO_USER_ID);
+        List<Demanda> demandas = demandaRepo.listarPorProjetoEUsuario(proj.getId(), DataLoader.DEMO_USER_ID);
 
-        assertEquals(1, totalComDemandas, "Exatamente uma lista deve ter demandas.");
-        assertTrue(totalSemDemandas >= 1, "As outras listas devem estar vazias.");
+        assertEquals(4, colunas.size(), "Devem existir 4 colunas para o projeto demo.");
+        assertEquals(1, demandas.size(), "Deve existir exatamente 1 demanda.");
+        assertEquals("BACKLOG", demandas.get(0).getColuna().getCodigo());
     }
 }

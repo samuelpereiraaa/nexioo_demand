@@ -88,14 +88,18 @@ public class DemandaForm {
         this.prazo = prazo;
     }
 
-    private Long projetoId;
+    private java.util.UUID projetoId;
 
-    public Long getProjetoId() {
+    public java.util.UUID getProjetoId() {
         return projetoId;
     }
 
-    public void setProjetoId(Long projetoId) {
+    public void setProjetoId(java.util.UUID projetoId) {
         this.projetoId = projetoId;
+    }
+
+    public void setProjetoId(Object projetoId) {
+        this.projetoId = br.com.nexioo.demand.util.IdUtils.parseUuid(projetoId);
     }
 }
 
